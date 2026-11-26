@@ -17,7 +17,7 @@ Zahlenotter wird mit Agenten entwickelt. Sie haben feste Rollen, jede Rolle schr
 
 | Datei oder Ort | Schreibende Rolle |
 |---|---|
-| `docs/lernziele.md` | Pädagogin |
+| `docs/lernziele.md`, `docs/spielmechanik.md`, `docs/level-konzepte.md` | Pädagogin |
 | `docs/ux/` | UX-Designer |
 | `docs/architektur.md` | Architekt |
 | `src/`, `tests/` (Unit-Tests der Logik), `index.html`, Konfiguration | Dev |
@@ -49,6 +49,7 @@ Zahlenotter wird mit Agenten entwickelt. Sie haben feste Rollen, jede Rolle schr
 - Was nur am echten iPad oder mit dem Kind prüfbar ist, heißt «offene Handprüfung», nie «geprüft».
 - Fragen an Michael sind Auswahlfragen mit Empfehlung zuerst.
 - Unklarheit ist eine Rückfrage, kein Raten.
+- **Jede Aufgabe bekommt einen eigenen Zweig** (siehe `CLAUDE.md`, Regel 8).
 
 ## Ablauf-Aussagen
 
