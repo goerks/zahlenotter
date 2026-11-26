@@ -1,6 +1,6 @@
 # Konzepte für den Aufbau der Level
 
-Grundlage: `docs/spielmechanik.md` (Ist-Zustand und Beobachtungen, Ticket 3). Dieses Dokument schlägt vor und beschliesst nichts. Es gibt zwei Konzepte, einen Vergleich und eine Empfehlung. Die Einschätzungen zu Code und Daten sind eine erste Sicht und müssen vom Architekten bestätigt werden, bevor gebaut wird. Beobachtungen am Kind fehlen noch; Annahmen sind als Annahmen gekennzeichnet.
+Grundlage: `docs/spielmechanik.md` (Ist-Zustand und Beobachtungen, Ticket 3). Dieses Dokument schlägt vor. Die Entscheide von Michael stehen in Abschnitt 8. Es gibt zwei Konzepte, einen Vergleich und eine Empfehlung. Die Einschätzungen zu Code und Daten sind eine erste Sicht und müssen vom Architekten bestätigt werden, bevor gebaut wird. Beobachtungen am Kind fehlen noch; Annahmen sind als Annahmen gekennzeichnet.
 
 ## 1. Ausgangslage in drei Sätzen
 
@@ -62,7 +62,7 @@ Die Feinstufen nutzen den vorhandenen Generator, schalten aber die Stellschraube
 
 - **Sicher** heisst: 2 oder 3 Sterne (höchstens zwei Fehler oder Hilfen).
 - **Aufstieg** in die nächste Feinstufe: von den **letzten 5 Aufgaben** der Feinstufe waren mindestens **4 sicher**, und es wurden mindestens 5 Aufgaben in der Feinstufe gelöst. Ein einzelner Zehnerfehler verhindert den Aufstieg nicht.
-- **Auffangbahn:** Zwei Aufgaben in Folge mit 1 Stern führen **eine Feinstufe zurück** («Wir üben noch einen Schritt vorher.»). Nie über eine Welt hinaus nach unten.
+- **Auffangbahn:** Zwei Aufgaben in Folge mit 1 Stern führen **eine Feinstufe zurück** («Wir üben noch einen Schritt vorher.»). Nie über eine Welt hinaus nach unten. (Entscheid von Michael: kein automatischer Abstieg, sondern ein Angebot, siehe Abschnitt 8.)
 - **Pause statt Frust:** Nach zwei Aufgaben mit 1 Stern in Folge bietet Plitsch an, eine leichtere Aufgabe zu üben oder Pause zu machen. Das Kind entscheidet.
 - Das Kind kann eine Feinstufe jederzeit **wiederholen**. Eltern können eine Feinstufe festlegen.
 - Annahme, vor einem Test mit dem Kind zu prüfen: «4 von 5» ist streng genug, um Sicherheit zu zeigen, und locker genug, um bei einem einzelnen Fehlertyp weiterzukommen.
@@ -165,10 +165,17 @@ Statt fester Stufen gibt es **Fähigkeiten**, zum Beispiel «Addieren bis 20», 
 - Ob der Generator die Feinstufen so hergibt, besonders «Zahlenraum bis 10» und «genau ein Zehnerübergang» in der Mauer (Architekt prüft).
 - Wie Stufen 4 bis 6 in dieses Modell passen (nur grob geplant).
 
-## 8. Offene Fragen an Michael
+## 8. Entscheide von Michael (26. November 2026)
 
-1. Welches Konzept soll weiterverfolgt werden: A, B oder die empfohlene Mischung (A mit Etiketten und «Gezielt üben»)?
-2. Soll das Kind den **Pfad** sehen (Stationen) oder nur seine Welt und Sterne, und die Feinstufen bleiben bei den Eltern?
-3. Darf ein Kind eine Feinstufe selbst wählen, oder entscheiden nur die App und die Eltern?
-4. Soll der Abstieg weiter automatisch passieren (heute ja, mit freundlichem Text) oder nur auf Wunsch des Kindes?
-5. Möchtest du die Aufstiegsregel zuerst mit deiner Tochter testen, bevor wir bauen?
+Michael hat die Fragen per Auswahl beantwortet. Die Antworten stehen auch als Kommentar «Koordinator: Entscheid» in Ticket 3.
+
+| Frage | Entscheid |
+|---|---|
+| Welches Konzept? | **A mit Etiketten und «Gezielt üben»**, wie in Abschnitt 6 empfohlen |
+| Soll das Kind den Pfad sehen? | **Ja**, Pfad mit Stationen; die Feinstufen stehen auch auf der Elternseite |
+| Wer darf die Feinstufe wählen? | **App und Eltern** entscheiden über das Weiterkommen, das **Kind darf eine geschaffte Station wiederholen** |
+| Abstieg automatisch? | **Nein, Angebot statt Automatik**: Nach zwei Aufgaben mit 1 Stern bietet Plitsch eine leichtere Aufgabe oder Pause an, das Kind entscheidet |
+
+**Noch offen:** Soll die Aufstiegsregel «4 von 5 sicher» zuerst mit der Tochter getestet werden, bevor gebaut wird? Diese Frage wurde noch nicht gestellt.
+
+Das ist ein Konzept-Entscheid und keine Freigabe zum Bauen. Gebaut wird erst nach einem eigenen Ticket mit Dossier (Pädagogin, UX, Architekt, Tester) und Michaels Freigabe.
