@@ -6,6 +6,7 @@ import * as QR from "./qr";
 import * as P from "./progress";
 import * as Store from "./storage";
 import * as Pfad from "./pfad";
+import * as Copy from "./copy";
 import "./style.css";
 
 (function () {
@@ -22,7 +23,7 @@ import "./style.css";
 
   const S = {
     screen: "home", game: { M: Store.emptyGame("M"), R: Store.emptyGame("R") }, adaptive: true, fish: 0,
-    stats: Store.emptyStats(), pfadType: "M", pfadMsg: "", offerDue: false, angebot: false, eltSel: { M: "", R: "" }, eltMsg: "",
+    stats: Store.emptyStats(), pfadType: "M", pfadMsg: "", offerDue: false, angebot: false, eltSel: { M: "", R: "" }, eltMsg: "", copied: null, toast: "", copyFail: "",
     session: null, tasks: [], active: null, hintCell: null, msg: "", mood: "happy", overlay: null,
     sheet: null, sheetType: "M", sheetLevel: 2, showSol: false, codeInput: "", codeError: "", baseUrl: "", checkResult: null, confirmReset: false,
   };
@@ -73,6 +74,8 @@ import "./style.css";
   }
   const fishIcon = (s) => `<svg width="${s || 22}" height="${s || 22}" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16 Q14 3 24 14 L30 8 V24 L24 18 Q14 29 3 16Z" fill="#4FB0C6"/><circle cx="9" cy="14" r="1.8" fill="#fff"/></svg>`;
   const starIcon = (on) => `<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z" fill="${on ? "#F4B942" : "#E3E7EF"}" stroke="${on ? "#C98A12" : "#C9CFDB"}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  const copyIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="3"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+  const checkIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
   const backIcon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
   const bulb = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.7.6 1 1.2 1 2.1h5c0-.9.3-1.5 1-2.1A6 6 0 0 0 12 3z"/></svg>';
 
@@ -175,7 +178,7 @@ import "./style.css";
       <div class="stage">${boardHtml(t, 0)}</div>
       <div class="coach">${otter(S.mood, stageOf(S.fish), 84)}<div class="bubble msg">${esc(S.msg)}</div></div>
       <div class="tools"><button class="btn alt" data-act="hint">${bulb} Hilfe</button><button class="btn orange" data-act="check">Prüfen</button></div>
-      ${padHtml()}<div class="code-tag">Aufgabe ${t.code} · ${esc(ZO.stationInfo(t.type, t.station).name)}</div>${ov}</div>`;
+      ${padHtml()}<div class="code-tag"><span>Aufgabe ${t.code} · ${esc(ZO.stationInfo(t.type, t.station).name)}</span>${copyBtn("task", t.code, "Code kopieren")}</div>${ov}</div>`;
   }
 
   function flagIcon() {
@@ -209,6 +212,41 @@ import "./style.css";
   }
 
   function baseUrl() { return S.baseUrl || location.href.split("#")[0]; }
+  // Kopieren-Knopf: zeigt nach dem Kopieren zwei Sekunden «Kopiert!» (Haken und Farbe, nicht nur Farbe)
+  function copyBtn(kind, text, label) {
+    const ok = S.copied === kind;
+    return `<button class="copybtn${ok ? " ok" : ""}" data-act="copy" data-kind="${kind}" data-text="${esc(text)}">${ok ? checkIcon : copyIcon}<span>${ok ? "Kopiert!" : label}</span></button>`;
+  }
+  function codeCardHtml(sheet) {
+    return `<div class="codecard noprint"><div class="codeinfo"><span class="lbl">Code dieses Blatts</span><span class="big">${esc(sheet.code)}</span></div>${copyBtn("code", sheet.code, "Code kopieren")}${copyBtn("addr", baseUrl(), "Adresse kopieren")}</div>`;
+  }
+  // Hinweis unten und Ersatz, wenn das Kopieren nicht klappt (Feld mit markiertem Text)
+  function extrasHtml() {
+    let h = "";
+    if (S.toast) h += `<div class="toast noprint" role="status">${checkIcon}<span>${esc(S.toast)}</span></div>`;
+    if (S.copyFail) h += `<div class="overlay noprint" role="dialog" aria-modal="true" aria-label="Kopieren ging nicht"><div class="modal" style="text-align:left"><h2>Kopieren ging nicht</h2><p style="margin:8px 0 12px">Dein Gerät erlaubt das Kopieren hier nicht. Tippe in das Feld und kopiere den Text von Hand.</p><input class="txt copyfield" data-copyfield readonly value="${esc(S.copyFail)}" aria-label="Text zum Kopieren"><div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn" data-act="copyClose">Fertig</button></div></div></div>`;
+    return h;
+  }
+  let copyTimer = null;
+  function legacyCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.className = "copyhelper";
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  async function doCopy(kind, text) {
+    const res = await Copy.copyText(text, { clipboard: typeof navigator !== "undefined" ? navigator.clipboard : null, legacy: legacyCopy });
+    if (res === "fehler") { S.copyFail = text; S.copied = null; S.toast = ""; }
+    else {
+      S.copied = kind; S.toast = Copy.copiedMessage(kind, text);
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => { S.copied = null; S.toast = ""; render(); }, 2000);
+    }
+    render();
+  }
   function sheetHtml(sheet, sol) {
     const name = sheet.type === "M" ? "Mustermauer" : "Reihenpfad";
     const url = baseUrl() + "#" + sheet.code;
@@ -229,7 +267,7 @@ import "./style.css";
       <div class="row wrap" style="margin-top:14px"><button class="btn" data-act="genSheet">Neues Blatt erzeugen</button>
       ${S.sheet ? `<button class="btn alt" data-act="print">Drucken</button><button class="btn alt" data-act="toggleSol">${S.showSol ? "Lösung ausblenden" : "Lösung anzeigen (Eltern)"}</button><button class="btn orange" data-act="checkSheet">Am Tablet prüfen</button>` : ""}</div>
       <div style="margin-top:14px"><b class="small">Adresse der App für den QR-Code</b><input class="txt" data-bind="baseUrl" value="${esc(S.baseUrl)}" placeholder="${esc(location.href.split("#")[0])}"><div class="small muted">Leer lassen = aktuelle Adresse. Für gedruckte Blätter später die öffentliche Adresse eintragen (z. B. GitHub Pages).</div></div>
-      ${S.printNote ? `<p class="small muted">${esc(S.printNote)}</p>` : ""}</div></div>
+      ${S.printNote ? `<p class="small muted">${esc(S.printNote)}</p>` : ""}</div>${S.sheet ? codeCardHtml(S.sheet) : ""}</div>
       ${S.sheet ? sheetHtml(S.sheet, S.showSol) : '<div class="noprint panel muted">Erzeuge ein Blatt: Du siehst es genau so, wie es gedruckt wird. Jedes Blatt hat einen Code, mit dem die Lösung später am Tablet geprüft wird.</div>'}`;
   }
 
@@ -288,8 +326,9 @@ import "./style.css";
   function render() {
     const y = window.scrollY;
     const map = { home: homeHtml, pfad: pfadHtml, play: playHtml, summary: summaryHtml, sheets: sheetsHtml, code: codeHtml, check: checkHtml, parents: parentsHtml };
-    $app.innerHTML = map[S.screen]();
+    $app.innerHTML = map[S.screen]() + extrasHtml();
     window.scrollTo(0, y);
+    if (S.copyFail) { const f = $app.querySelector("[data-copyfield]"); if (f) { f.focus(); f.select(); } }
   }
 
   // ---------- Aktionen ----------
@@ -428,6 +467,8 @@ import "./style.css";
 
   function act(a, d) {
     switch (a) {
+      case "copy": doCopy(d.kind, d.text); break;
+      case "copyClose": S.copyFail = ""; break;
       case "go": S.screen = d.to; S.overlay = null; S.angebot = false; S.offerDue = false; S.codeError = ""; S.confirmReset = false; S.eltMsg = ""; break;
       case "pfad": S.screen = "pfad"; S.pfadType = d.type; S.pfadMsg = ""; break;
       case "pfadStation": {
@@ -518,6 +559,7 @@ import "./style.css";
     if (b === "baseUrl") { S.baseUrl = e.target.value.trim(); save(); }
   });
   document.addEventListener("keydown", (e) => {
+    if (S.copyFail) { if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); act("copyClose", {}); } return; }
     if (e.target.tagName === "INPUT") { if (e.key === "Enter" && S.screen === "code") act("loadCode", {}); return; }
     if (S.screen !== "play" && S.screen !== "check") return;
     if (S.overlay) { if (e.key === "Enter") act("continue", {}); return; }
