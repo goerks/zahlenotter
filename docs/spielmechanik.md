@@ -17,14 +17,14 @@ Die zwei Spiele:
 
 ### 1.2 Aufbau jeder Aufgabe
 
-Jede Aufgabe hat eine vollständige Lösung (`sol`) und eine Liste, welche Felder vorgegeben sind (`given`). Alle anderen Felder sind **Lücken**, die das Kind füllt. Der Generator setzt eine Lücke nur, wenn die Aufgabe dadurch lösbar bleibt (Mauer: Solver prüft Eindeutigkeit; Reihe: feste Ankerfelder, siehe 5.4).
+Jede Aufgabe hat eine vollständige Lösung (`sol`) und eine Liste, welche Felder vorgegeben sind (`given`). Alle anderen Felder sind **Lücken**, die das Kind füllt. Der Generator setzt eine Lücke nur, wenn die Aufgabe dadurch lösbar bleibt (Mauer: Solver prüft Eindeutigkeit; Reihe: feste Ankerfelder, siehe 3.3).
 
 ### 1.3 Eingabe
 
 - Ziffernblock auf dem Bildschirm (0 bis 9, Löschen, Feld zurück und vor). Am Desktop gehen auch Zifferntasten, Rücktaste, Pfeile, Tab und Enter.
 - Höchstens drei Ziffern je Feld. Eine führende Null wird ersetzt.
 - Tippt das Kind in ein **falsches** (orangefarbenes) Feld, wird die alte Zahl ersetzt, nicht erweitert.
-- Das aktive Feld ist orange umrandet. Beim Start und nach jeder Prüfung springt es auf das nächste offene Feld.
+- Das aktive Feld ist orange umrandet. Beim Start ist es das erste offene Feld, nach einer falschen Prüfung das erste falsche Feld.
 
 ### 1.4 Prüfen
 
@@ -74,7 +74,7 @@ Die Statistik «Hilfen genutzt» zählt jeden Druck auf «Hilfe», auch die kost
 
 ### 1.10 Stufen, Anpassung und Speicher
 
-- Beide Spiele haben **je eine eigene Stufe** (1 bis 3, Klassen 1 bis 3). Das Kind wählt sie auf der Startseite (zurückgesetzter Verlauf) oder die App passt sie an (Abschnitt 4).
+- Beide Spiele haben **je eine eigene Stufe** (1 bis 3, Klassen 1 bis 3). Das Kind wählt sie auf der Startseite (dabei wird der Verlauf geleert) oder die App passt sie an (Abschnitt 4).
 - Die Elternseite zeigt gelöste Aufgaben, Fische, Hilfen, Fehlerarten und eine Empfehlung nach der häufigsten Fehlerart.
 - Alles liegt nur lokal im `localStorage` (Schlüssel `zahlenotter.proto.v1`): Stufen, Verlauf der Sterne, Fische, Statistik, Einstellung «automatisch anpassen» und Basisadresse. Fällt der Speicher aus, läuft die App ohne Fortschritt weiter.
 
@@ -86,7 +86,7 @@ Die Statistik «Hilfen genutzt» zählt jeden Druck auf «Hilfe», auch die kost
 | Hilfe Stufe 2 | Rechenweg als Gleichung | Bögen mit den Schritten |
 | Regel | immer dieselbe (oben = links + rechts) | genannt oder zu entdecken (Stufe 3) |
 | Blatt | 4 Aufgaben | 6 Aufgaben |
-| Lösungswert | genau eine Lösung, bewiesen (Solver) | genau eine Lösung nur über Anker abgesichert |
+| Eindeutigkeit | genau eine Lösung, vom Solver geprüft | genau eine Lösung nur über Anker abgesichert |
 
 ## 2. Mustermauer
 
@@ -138,7 +138,7 @@ Die Prüfung erwartet genau die gespeicherte Lösung. Dass keine zweite sinnvoll
 
 ## 4. Wie das Level vorwärts kommt
 
-Nach **jeder gelösten Aufgabe** werden die Sterne in den Verlauf des Spiels eingetragen (`Mauer` und `Reihe` haben je einen eigenen Verlauf). Ist «Stufe automatisch anpassen» eingeschaltet (Standard), prüft die App:
+Nach **jeder gelösten Aufgabe** werden die Sterne in den Verlauf des Spiels eingetragen (Mauer und Reihe haben je einen eigenen Verlauf). Ist «Stufe automatisch anpassen» eingeschaltet (Standard), prüft die App:
 
 | Bedingung | Folge |
 |---|---|
@@ -150,10 +150,13 @@ Nach jedem Stufenwechsel wird der Verlauf des Spiels geleert. Wählt man die Stu
 
 ### 4.1 Beispielverläufe
 
+Die App schaut nur auf die **letzten** Aufgaben des Verlaufs, die seit dem letzten Stufenwechsel gelöst wurden.
+
 | Verlauf der Sterne (Mauer, Stufe 2) | Ergebnis |
 |---|---|
 | 3, 3, 3 | Stufe 3 |
-| 3, 3, 2, 3, 3 | bleibt auf Stufe 2: Die 2 unterbricht die Serie, und es fehlt noch eine Aufgabe mit drei makellosen Aufgaben davor |
+| 3, 3, 2 | bleibt auf Stufe 2: Die letzte Aufgabe hatte nur 2 Sterne |
+| 3, 3, 2, 3, 3 | bleibt auf Stufe 2: Die letzten drei sind 2, 3, 3, also nicht alle makellos. Erst mit einer weiteren 3 wären die letzten drei 3, 3, 3 |
 | 2, 1, 1 | Stufe 1 |
 | 1, 2, 1 | bleibt auf Stufe 2 (nur direkt aufeinanderfolgende 1-Stern-Aufgaben zählen) |
 | 3, 3, 1, 1 | Stufe 1 (die letzten zwei sind 1 Stern) |
@@ -165,7 +168,7 @@ Nach jedem Stufenwechsel wird der Verlauf des Spiels geleert. Wählt man die Stu
 | Zahlenraum | bis 20, bis 100 | bis 20, 50 oder 100 (je nach Schritt) |
 | Grösse | 3 oder 4 Reihen | immer 8 Felder |
 | Rechenart | nur addieren, abziehen in der Basis, abziehen oben | vorwärts, rückwärts, wechselnd, wachsend |
-| Zehnerübergang | Stufe 1 ja (selten gemieden), Stufe 2 nie, Stufe 3 immer | nicht gesteuert |
+| Zehnerübergang | Stufe 1 meist ja (88 %), Stufe 2 nie, Stufe 3 immer | nicht gesteuert |
 | Anzahl und Ort der Lücken | 2 bis 6, Basis-Lücken ab Stufe 2 | feste 5 (Stufe 1 und 2), 4 oder 5 (Stufe 3) |
 | Schrittgrösse | nicht vorhanden | 1 bis 10 |
 | Regel sichtbar oder verdeckt | nicht vorhanden | Stufe 1 und 2 genannt, Stufe 3 meist verdeckt |
@@ -201,7 +204,7 @@ Keine Beschlüsse, sondern Beobachtungen, die in `docs/level-konzepte.md` aufgeg
 7. **Nur drei Stufen.** Stufe 3 ist die Obergrenze, Stufen 4 bis 6 sind geplant und nicht gebaut.
 8. **Mauer Stufe 2 hat immer genau 3 Lücken.** Die Konfiguration erlaubt 3 bis 4, ausgeschöpft wird nur 3.
 9. **Reihe: Eindeutigkeit nur über Anker.** Siehe 3.3. Ein Regel-Solver fehlt.
-10. **Stufe 1 der Reihe hat immer 5 Lücken und nie rückwärts**, Stufe 2 immer 5. Die Anzahl Lücken ändert sich bis Stufe 3 kaum.
+10. **Reihe Stufe 1 hat immer 5 Lücken und nie rückwärts**, Stufe 2 immer 5. Die Anzahl Lücken ändert sich bis Stufe 3 kaum.
 11. **Das Speicherformat hat keine Versionsnummer.** Der Schlüssel enthält `v1`, die gespeicherten Daten tragen kein Versionsfeld. Jede Änderung an Stufen oder Verlauf braucht eine Migration (Regel in `CLAUDE.md`).
 12. **Das Papierblatt kennt nur die Stufe.** Der Code trägt eine einstellige Stufe; feinere Abstufungen bräuchten ein neues Codeformat.
 13. **Nicht gemessen:** wie oft Kinder die Hilfe nutzen, wie lange eine Aufgabe dauert, wie sich die Stufen in der Praxis anfühlen. Das zeigt nur ein Test mit dem Kind.
