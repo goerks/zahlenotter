@@ -18,7 +18,7 @@ describe("Zufall und Codes", () => {
     expect(ZO.makeCode("M", 2)).toMatch(/^M2-[A-HJ-NP-Z2-9]{5}$/);
   });
   it("parseCode: gross/klein, Leerzeichen, ungültige Zeichen", () => {
-    expect(ZO.parseCode("m2-k7p2q")).toEqual({ type: "M", level: 2, seed: "K7P2Q", code: "M2-K7P2Q" });
+    expect(ZO.parseCode("m2-k7p2q")).toEqual({ type: "M", level: 2, station: "2c", seed: "K7P2Q", code: "M2-K7P2Q" });
     expect(ZO.parseCode(" R3-ABCDE ")?.level).toBe(3);
     expect(ZO.parseCode("M2-K7P20")).toBeNull(); // 0 ist kein Zeichen des Alphabets
     expect(ZO.parseCode("M4-ABCDE")).toBeNull();

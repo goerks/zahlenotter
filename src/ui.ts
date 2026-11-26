@@ -3,11 +3,13 @@
 // @ts-nocheck
 import * as ZO from "./logic";
 import * as QR from "./qr";
+import * as P from "./progress";
+import * as Store from "./storage";
+import * as Pfad from "./pfad";
 import "./style.css";
 
 (function () {
   const $app = document.getElementById("app");
-  const KEY = "zahlenotter.proto.v1";
   const STAGES = [0, 6, 15, 30];
   const GIFTS = ["Schal", "Brille", "Krone"];
   const ERR_LABEL = {
@@ -16,26 +18,22 @@ import "./style.css";
     dreher: ["Zahlendreher", "Ziffern vertauscht (z. B. 61 statt 16)."],
     andere: ["Andere Fehler", "Kein erkennbares Muster, zum Beispiel falsche Rechenart."],
   };
-  const LEVEL_TXT = {
-    M: { 1: "Zahlenraum 20, nur addieren", 2: "bis 100, ohne Zehnerübergang, manchmal Lücke unten", 3: "4 Reihen, bis 100, Zehnerübergang, Abziehen" },
-    R: { 1: "2er-, 5er-, 10er-Schritte, Regel genannt", 2: "vorwärts und rückwärts, Regel genannt", 3: "Regel entdecken: wechselnde und wachsende Schritte" },
-  };
+  const GAME_NAME = { M: "Mustermauer", R: "Reihenpfad" };
 
   const S = {
-    screen: "home", levels: { M: 1, R: 1 }, adaptive: true, hist: { M: [], R: [] }, fish: 0,
-    stats: { solved: { M: 0, R: 0 }, errors: { zehner: 0, knapp: 0, dreher: 0, andere: 0 }, hints: 0 },
+    screen: "home", game: { M: Store.emptyGame("M"), R: Store.emptyGame("R") }, adaptive: true, fish: 0,
+    stats: Store.emptyStats(), pfadType: "M", pfadMsg: "", offerDue: false, angebot: false, eltSel: { M: "", R: "" }, eltMsg: "",
     session: null, tasks: [], active: null, hintCell: null, msg: "", mood: "happy", overlay: null,
     sheet: null, sheetType: "M", sheetLevel: 2, showSol: false, codeInput: "", codeError: "", baseUrl: "", checkResult: null, confirmReset: false,
   };
 
   function load() {
-    try {
-      const j = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (j) { S.levels = j.levels || S.levels; S.adaptive = j.adaptive !== false; S.hist = j.hist || S.hist; S.fish = j.fish || 0; S.stats = j.stats || S.stats; S.baseUrl = j.baseUrl || ""; }
-    } catch (e) { /* ohne Speicher weiterarbeiten */ }
+    const st = Store.load();
+    S.adaptive = st.adaptive; S.fish = st.fish; S.stats = st.stats; S.baseUrl = st.baseUrl;
+    S.game = { M: st.M, R: st.R };
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ levels: S.levels, adaptive: S.adaptive, hist: S.hist, fish: S.fish, stats: S.stats, baseUrl: S.baseUrl })); } catch (e) { /* egal */ }
+    Store.save({ version: 2, adaptive: S.adaptive, fish: S.fish, stats: S.stats, baseUrl: S.baseUrl, M: S.game.M, R: S.game.R });
   }
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -138,16 +136,16 @@ import "./style.css";
     const gift = next ? `Noch ${next - S.fish} Fische bis: ${GIFTS[st]}` : "Plitsch hat alle Geschenke!";
     const world = (type, title, sub, icon) => `<div class="world">
       <div class="ico">${icon}</div><h2>${title}</h2><div class="muted small">${sub}</div>
-      <div class="pills">${[1, 2, 3].map((l) => `<button class="pill${S.levels[type] === l ? " on" : ""}" data-act="level" data-type="${type}" data-level="${l}">Stufe ${l}</button>`).join("")}</div>
-      <div class="small muted" style="min-height:40px">Klasse ${S.levels[type]}: ${LEVEL_TXT[type][S.levels[type]]}</div>
-      <button class="btn" data-act="start" data-type="${type}">Los geht’s</button></div>`;
+      <div class="chip" style="align-self:flex-start">Station ${Pfad.nummer(type, S.game[type].station)} von ${ZO.STATIONS[type].length}</div>
+      <div class="small muted" style="min-height:40px">${esc(ZO.stationInfo(type, S.game[type].station).name)}</div>
+      <div class="world-btns"><button class="btn alt" data-act="pfad" data-type="${type}">Pfad ansehen</button><button class="btn" data-act="start" data-type="${type}">Los geht’s</button></div></div>`;
     const miniM = '<svg width="120" height="64" viewBox="0 0 120 64"><g fill="#fff" stroke="#1F8A8A" stroke-width="3"><rect x="45" y="4" width="30" height="16" rx="4"/><rect x="30" y="24" width="30" height="16" rx="4"/><rect x="60" y="24" width="30" height="16" rx="4"/><rect x="15" y="44" width="30" height="16" rx="4"/><rect x="45" y="44" width="30" height="16" rx="4"/><rect x="75" y="44" width="30" height="16" rx="4"/></g></svg>';
     const miniR = '<svg width="150" height="64" viewBox="0 0 150 64"><g fill="#fff" stroke="#1F8A8A" stroke-width="3"><rect x="4" y="30" width="26" height="26" rx="5"/><rect x="42" y="30" width="26" height="26" rx="5"/><rect x="80" y="30" width="26" height="26" rx="5"/><rect x="118" y="30" width="26" height="26" rx="5"/></g><g fill="none" stroke="#F39C4A" stroke-width="3" stroke-linecap="round"><path d="M17 24 Q30 6 55 24"/><path d="M55 24 Q68 6 93 24"/><path d="M93 24 Q106 6 131 24"/></g></svg>';
     return `<div class="hero">${otter("happy", st, 130)}<div style="flex:1"><div class="bubble">Hallo! Ich bin Plitsch. Was wollen wir heute knobeln?</div>
       <div class="row spread" style="margin-top:10px"><span class="chip">${fishIcon()} ${S.fish} Fische</span><span class="small muted">${gift}</span></div>
       <div class="progress"><i style="width:${progress}%"></i></div></div></div>
       <div class="worlds">${world("M", "Mustermauer", "Zahlenmauern: oben ist die Summe von unten", miniM)}${world("R", "Reihenpfad", "Zahlenreihen: finde den nächsten Schritt", miniR)}</div>
-      <div class="switch"><button class="${S.adaptive ? "on" : ""}" data-act="adaptive" aria-label="Automatisch anpassen"></button><span>Stufe automatisch anpassen <span class="muted small">(3× sehr gut = höher, 2× schwer = tiefer)</span></span></div>
+      <div class="switch"><button class="${S.adaptive ? "on" : ""}" data-act="adaptive" aria-label="Automatisch weiterkommen"></button><span>Automatisch weiterkommen <span class="muted small">(4 von 5 Aufgaben sicher = nächste Station)</span></span></div>
       <div class="footer-links"><button class="btn alt small" data-act="go" data-to="sheets">Papierblatt erstellen</button><button class="btn alt small" data-act="go" data-to="code">Blatt prüfen (Code)</button><button class="btn alt small" data-act="go" data-to="parents">Eltern</button></div>`;
   }
 
@@ -166,13 +164,39 @@ import "./style.css";
         ${o.gift ? `<p class="chip" style="background:#FFF3CF">Neues Geschenk: ${o.gift}!</p>` : ""}
         <div style="margin-top:14px"><button class="btn orange" data-act="continue">Weiter</button></div></div></div>`;
     }
+    if (S.angebot) {
+      ov = `<div class="overlay"><div class="modal">${otter("think", stageOf(S.fish), 150)}
+        <h2>Das war knifflig!</h2><p style="margin:8px 0 14px">Magst du eine leichtere Aufgabe oder eine kleine Pause?</p>
+        <div class="stack"><button class="btn" data-act="angebotEasy">Leichtere Aufgabe</button><button class="btn alt" data-act="angebotPause">Pause</button><button class="btn alt" data-act="angebotWeiter">Weiter so</button></div></div></div>`;
+    }
     return `<div class="noprint">
       <div class="topbar"><button class="btn alt small" data-act="go" data-to="home">${backIcon} Zurück</button><div class="dots" aria-label="Fortschritt">${dots}</div><span class="chip">${fishIcon()} ${S.fish}</span></div>
       <div class="banner">${esc(instruction(t))}</div>
       <div class="stage">${boardHtml(t, 0)}</div>
       <div class="coach">${otter(S.mood, stageOf(S.fish), 84)}<div class="bubble msg">${esc(S.msg)}</div></div>
       <div class="tools"><button class="btn alt" data-act="hint">${bulb} Hilfe</button><button class="btn orange" data-act="check">Prüfen</button></div>
-      ${padHtml()}<div class="code-tag">Aufgabe ${t.code}</div>${ov}</div>`;
+      ${padHtml()}<div class="code-tag">Aufgabe ${t.code} · ${esc(ZO.stationInfo(t.type, t.station).name)}</div>${ov}</div>`;
+  }
+
+  function flagIcon() {
+    return '<svg class="flag" viewBox="0 0 40 44" aria-hidden="true"><path d="M8 4v38" stroke="#23355B" stroke-width="3" stroke-linecap="round"/><path d="M10 6h24v18H10z" fill="#fff" stroke="#23355B" stroke-width="2"/><path d="M10 6h8v6h-8zM26 6h8v6h-8zM18 12h8v6h-8zM10 18h8v6h-8zM26 18h8v6h-8z" fill="#23355B"/></svg>';
+  }
+  function pfadHtml() {
+    const type = S.pfadType, g = S.game[type], pl = Pfad.plaetze(type), rows = Pfad.zeilen(type), n = ZO.STATIONS[type].length;
+    const mini = otter("happy", stageOf(S.fish), 54);
+    const dots = pl.map((q) => {
+      const st = Pfad.stationStatus(type, g, q.id);
+      return `<button class="tdot ${st}" style="left:${q.x}%;top:${q.y}px" data-act="pfadStation" data-id="${q.id}" aria-label="${esc(Pfad.stationLabel(type, q.id, st))}">${st === "now" ? mini : Pfad.nummer(type, q.id)}</button>`;
+    }).join("");
+    const klass = rows.map((z, r) => { const f = pl.find((q) => q.id === z[0].id); return `<span class="klass" style="left:calc(${f.x}% - 44px);top:${f.y - 76}px">Klasse ${r + 1}</span>`; }).join("");
+    const lastRow = rows[2], flag = lastRow.length < Pfad.SLOT_X.length ? `<span class="flagpos" style="left:${Pfad.SLOT_X[lastRow.length]}%;top:${Pfad.ZEILE_Y[2]}px">${flagIcon()}</span>` : "";
+    const info = ZO.stationInfo(type, g.station);
+    return `<div class="noprint"><div class="topbar"><button class="btn alt small" data-act="go" data-to="home">${backIcon} Zurück</button><h2>Dein Pfad: ${GAME_NAME[type]}</h2><span class="chip">${fishIcon()} ${S.fish}</span></div>
+      <div class="board" style="height:${Pfad.BRETT_HOEHE}px"><svg class="river" viewBox="0 0 100 ${Pfad.BRETT_HOEHE}" preserveAspectRatio="none" aria-hidden="true"><path d="${Pfad.flussPfad(type)}" fill="none" stroke="var(--river)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path d="${Pfad.flussPfad(type)}" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>${klass}${dots}${flag}</div>
+      <div class="legend"><span><i class="lg done"></i>geschafft</span><span><i class="lg vor"></i>vorausgesetzt</span><span><i class="lg now"></i>jetzt</span><span><i class="lg todo"></i>kommt noch</span></div>
+      <div class="banner">Jetzt: Station ${Pfad.nummer(type, g.station)} von ${n}. ${esc(info.name)}</div>
+      ${S.pfadMsg ? `<div class="coach">${otter("think", stageOf(S.fish), 70)}<div class="bubble msg">${esc(S.pfadMsg)}</div></div>` : ""}
+      <div class="tools"><button class="btn orange" data-act="pfadWeiter">Weiter üben</button></div></div>`;
   }
 
   function summaryHtml() {
@@ -227,23 +251,43 @@ import "./style.css";
       <div class="tools"><button class="btn orange" data-act="checkAll">Alles prüfen</button></div>${padHtml(true)}</div>`;
   }
 
+  function pfadZeile(type) {
+    const g = S.game[type], sel = S.eltSel[type] || g.station, last5 = g.results.slice(-5);
+    const stars = last5.length ? last5.map((x) => `<span class="mini" title="${x.stars} von 3 Sternen${x.revealed ? ", Feld aufgedeckt" : ""}">${[1, 2, 3].map((k) => starIcon(k <= x.stars)).join("")}</span>`).join(" ") : '<span class="small muted">Noch keine Aufgaben</span>';
+    return `<div class="rowp"><div><b>${GAME_NAME[type]}: Station ${Pfad.nummer(type, g.station)} von ${ZO.STATIONS[type].length}</b><div class="small muted">${esc(ZO.stationInfo(type, g.station).name)}</div><div class="stars sm" style="justify-content:flex-start;margin:6px 0 0">${stars}</div></div>
+      <div class="festlegen"><select class="txt" data-bind="station-${type}" aria-label="Station festlegen für ${GAME_NAME[type]}">${ZO.STATIONS[type].map((x, k) => `<option value="${x.id}"${x.id === sel ? " selected" : ""}>Station ${k + 1}: ${esc(x.name)}</option>`).join("")}</select>
+      <button class="btn alt small holdbtn" data-hold-act="stationSet" data-type="${type}" aria-label="Station festlegen, 2 Sekunden gedrückt halten"><span>Festlegen (2 s halten)</span></button></div></div>`;
+  }
+  function fehlerTabelle() {
+    const rows = [];
+    for (const type of ["M", "R"]) {
+      const by = {};
+      S.game[type].results.forEach((x) => { const b = (by[x.station] = by[x.station] || { n: 0, zehner: 0, knapp: 0, dreher: 0, andere: 0 }); b.n++; for (const k of ["zehner", "knapp", "dreher", "andere"]) b[k] += (x.errs && x.errs[k]) || 0; });
+      ZO.STATIONS[type].forEach((st, k) => { const b = by[st.id]; if (b) rows.push(`<tr><td>${GAME_NAME[type]} ${k + 1}</td><td>${b.n}</td><td>${b.zehner}</td><td>${b.knapp}</td><td>${b.dreher}</td><td>${b.andere}</td></tr>`); });
+    }
+    if (!rows.length) return '<p class="small muted">Noch keine Aufgaben im neuen Pfad gelöst.</p>';
+    return `<div style="overflow-x:auto"><table class="fe"><tr><th>Station</th><th>Aufgaben</th><th>Zehnerfehler</th><th>Knapp daneben</th><th>Zahlendreher</th><th>Andere</th></tr>${rows.join("")}</table></div>`;
+  }
   function parentsHtml() {
     const e = S.stats.errors, totE = Object.values(e).reduce((a, b) => a + b, 0);
     const top = Object.entries(e).sort((a, b) => b[1] - a[1])[0];
-    const tip = totE && top[1] ? (top[0] === "zehner" ? "Zehnerfehler häufen sich: Mustermauer Stufe 2 (ohne Zehnerübergang) festigen, dann Stufe 3. Hilfreich: erst die Zehner, dann die Einer rechnen." : top[0] === "dreher" ? "Zahlendreher: Zahlen beim Schreiben laut mitsprechen lassen." : top[0] === "knapp" ? "Knappe Fehler: Reihen mit dem Finger auf dem Zahlenstrahl abzählen." : "Gemischte Fehler: Aufgaben langsamer und mit Hilfe 2 (Rechenweg) bearbeiten.") : "Noch keine Fehler erfasst.";
+    const tip = totE && top[1] ? (top[0] === "zehner" ? "Zehnerfehler häufen sich: Aufgaben mit Zehnerübergang in Ruhe üben, zum Beispiel in der Mustermauer die Stationen «Einmal über den Zehner rechnen» und «Über den Zehner rechnen». Hilfreich: erst die Zehner, dann die Einer rechnen." : top[0] === "dreher" ? "Zahlendreher: Zahlen beim Schreiben laut mitsprechen lassen." : top[0] === "knapp" ? "Knappe Fehler: Reihen mit dem Finger auf dem Zahlenstrahl abzählen." : "Gemischte Fehler: Aufgaben langsamer und mit Hilfe 2 (Rechenweg) bearbeiten.") : "Noch keine Fehler erfasst.";
     return `<div class="noprint"><div class="topbar"><button class="btn alt small" data-act="go" data-to="home">${backIcon} Zurück</button><h2>Eltern</h2><span></span></div>
       <div class="panel"><div class="grid2"><div class="stat"><b>${S.stats.solved.M}</b>Mauern gelöst</div><div class="stat"><b>${S.stats.solved.R}</b>Reihen gelöst</div><div class="stat"><b>${S.fish}</b>Fische gesammelt</div><div class="stat"><b>${S.stats.hints}</b>Hilfen genutzt</div></div></div>
       <div class="panel"><h3>Fehlerarten</h3><p class="muted small">Die App merkt sich, was schiefgeht, nicht nur ob. Daraus ergibt sich, was als Nächstes geübt werden sollte.</p>
       ${Object.keys(ERR_LABEL).map((k) => `<div class="row spread" style="padding:8px 0;border-bottom:1px solid var(--line)"><div><b>${ERR_LABEL[k][0]}</b><div class="small muted">${ERR_LABEL[k][1]}</div></div><b style="font-size:24px">${e[k]}</b></div>`).join("")}
       <p><b>Empfehlung:</b> ${esc(tip)}</p></div>
-      <div class="panel"><h3>Aktuelle Stufen</h3><p>Mustermauer: Stufe ${S.levels.M} · Reihenpfad: Stufe ${S.levels.R}</p><p class="small muted">Daten bleiben nur auf diesem Gerät (kein Konto, keine Übertragung).</p>
+      <div class="panel"><h3>Pfad</h3><p class="muted small">Hier siehst du, wo dein Kind steht. Das Kind kann Stationen wiederholen; weiter geht es über die Regel (4 von 5 Aufgaben sicher) oder über dich.</p>
+      ${["M", "R"].map(pfadZeile).join("")}${S.eltMsg ? `<p class="small" style="color:var(--teal-d);font-weight:700">${esc(S.eltMsg)}</p>` : ""}
+      <h3 style="margin-top:16px">Fehlerarten je Station</h3>${fehlerTabelle()}</div>
+      <div class="panel"><h3>Daten</h3><p class="small muted">Daten bleiben nur auf diesem Gerät (kein Konto, keine Übertragung).</p>
       ${S.confirmReset ? `<button class="btn orange small" data-act="reset2">Wirklich alles zurücksetzen</button> <button class="btn alt small" data-act="reset0">Abbrechen</button>` : `<button class="btn alt small" data-act="reset1">Fortschritt zurücksetzen</button>`}</div></div>`;
   }
 
   // ---------- Rendern ----------
   function render() {
     const y = window.scrollY;
-    const map = { home: homeHtml, play: playHtml, summary: summaryHtml, sheets: sheetsHtml, code: codeHtml, check: checkHtml, parents: parentsHtml };
+    const map = { home: homeHtml, pfad: pfadHtml, play: playHtml, summary: summaryHtml, sheets: sheetsHtml, code: codeHtml, check: checkHtml, parents: parentsHtml };
     $app.innerHTML = map[S.screen]();
     window.scrollTo(0, y);
   }
@@ -262,16 +306,22 @@ import "./style.css";
     S.active = { t: l[k][0], i: l[k][1] };
   }
   function newTask() {
-    const type = S.session.type, level = S.levels[type];
-    const code = ZO.makeCode(type, level);
-    const t = ZO.makeTask(type, level, code.split("-")[1]);
+    const se = S.session, type = se.type;
+    // Übt das Kind nicht eine bestimmte Station, folgt die Einheit der aktuellen Station (auch nach einem Aufstieg).
+    let station = se.practice ? se.station : S.game[type].station;
+    if (se.easy) { station = P.leichtereStation(type, station); se.easy = false; }
+    const info = ZO.stationInfo(type, station);
+    const code = ZO.makeCode(type, info.level, station);
+    const t = ZO.makeTask(type, info.level, code.split("-")[1], station);
     t.code = code;
     S.tasks = [t]; S.active = null; step(1); S.hintCell = null; S.overlay = null;
     S.mood = "happy";
     S.msg = ["Du schaffst das! Fang bei einem Feld an, das du kennst.", "Los geht’s! Tipp ein Feld an und gib die Zahl ein.", "Schau erst, wo du schon etwas ausrechnen kannst."][S.session.stars.length % 3];
   }
-  function startSession(type) {
-    S.session = { type, total: 5, stars: [] };
+  function startSession(type, station) {
+    const front = S.game[type].station;
+    S.session = { type, total: 5, stars: [], station: station || front, practice: !!station && station !== front, easy: false, offered: false };
+    S.offerDue = false; S.angebot = false;
     S.screen = "play";
     newTask();
   }
@@ -312,13 +362,20 @@ import "./style.css";
     // geloest
     const stars = ZO.starsOf(t), type = t.type;
     S.fish += stars; S.stats.solved[type]++; S.session.stars.push(stars);
-    S.hist[type].push(stars);
+    const g = S.game[type];
+    const errs = {}; t.errLog.forEach((k) => (errs[k] = (errs[k] || 0) + 1));
+    g.results.push({ day: P.heute(), stars, errs, revealed: t.revealed.length > 0, station: t.station });
+    if (g.results.length > Store.MAX_RESULTS) g.results.splice(0, g.results.length - Store.MAX_RESULTS);
     const prevStage = stageOf(S.fish - stars), nowStage = stageOf(S.fish);
     let note = "";
-    if (S.adaptive) {
-      const a = ZO.adapt(S.hist[type], S.levels[type]);
-      if (a.dir) { S.levels[type] = a.level; S.hist[type] = []; note = a.dir === "up" ? `Stufe ${a.level} freigeschaltet!` : `Wir üben noch ein bisschen auf Stufe ${a.level}.`; }
+    const wasDone = g.geschafft.includes(g.station);
+    if (S.adaptive && !S.session.practice && t.station === g.station && !wasDone && P.aufstieg(g.results, g.station)) {
+      g.geschafft.push(g.station);
+      const nx = P.naechsteStation(type, g.station);
+      if (nx) { g.station = nx; note = `Neue Station: ${ZO.stationInfo(type, nx).name}`; }
+      else note = "Alle Stationen geschafft!";
     }
+    S.offerDue = !S.session.offered && S.session.stars.length < S.session.total && P.angebotFaellig(S.session.stars);
     if (type === "R") t.showSteps.fill(true);
     S.mood = "cheer"; S.msg = OKMSG[stars - 1] || OKMSG[0]; S.active = null;
     S.overlay = { stars, rule: type === "R" && !t.announced ? t.rule : null, note, gift: nowStage > prevStage ? GIFTS[nowStage - 1] : "" };
@@ -371,8 +428,28 @@ import "./style.css";
 
   function act(a, d) {
     switch (a) {
-      case "go": S.screen = d.to; S.overlay = null; S.codeError = ""; S.confirmReset = false; break;
-      case "level": S.levels[d.type] = +d.level; S.hist[d.type] = []; save(); break;
+      case "go": S.screen = d.to; S.overlay = null; S.angebot = false; S.offerDue = false; S.codeError = ""; S.confirmReset = false; S.eltMsg = ""; break;
+      case "pfad": S.screen = "pfad"; S.pfadType = d.type; S.pfadMsg = ""; break;
+      case "pfadStation": {
+        const type = S.pfadType, g = S.game[type], st = Pfad.stationStatus(type, g, d.id);
+        const hint = Pfad.tippHinweis(st);
+        if (hint) { S.pfadMsg = hint; break; }
+        startSession(type, d.id);
+        break;
+      }
+      case "pfadWeiter": startSession(S.pfadType); break;
+      case "stationSet": {
+        const type = d.type, g = S.game[type], sel = S.eltSel[type] || g.station, idx = ZO.stationIndex(type, sel);
+        if (idx < 0) break;
+        g.station = sel;
+        g.geschafft = g.geschafft.filter((id) => ZO.stationIndex(type, id) < idx);
+        S.eltMsg = `${GAME_NAME[type]}: Station ${idx + 1} festgelegt (${ZO.stationInfo(type, sel).name}).`;
+        save();
+        break;
+      }
+      case "angebotEasy": S.angebot = false; S.session.easy = true; newTask(); break;
+      case "angebotWeiter": S.angebot = false; newTask(); break;
+      case "angebotPause": S.angebot = false; S.session = null; S.screen = "home"; break;
       case "adaptive": S.adaptive = !S.adaptive; save(); break;
       case "start": startSession(d.type); break;
       case "cell": S.active = { t: +d.t, i: +d.i }; break;
@@ -384,7 +461,9 @@ import "./style.css";
       case "check": doCheck(); break;
       case "continue":
         S.overlay = null;
-        if (S.session.stars.length >= S.session.total) S.screen = "summary"; else newTask();
+        if (S.session.stars.length >= S.session.total) S.screen = "summary";
+        else if (S.offerDue) { S.offerDue = false; S.session.offered = true; S.angebot = true; }
+        else newTask();
         break;
       case "sheetType": S.sheetType = d.v; break;
       case "sheetLevel": S.sheetLevel = +d.v; break;
@@ -401,8 +480,8 @@ import "./style.css";
       case "reset1": S.confirmReset = true; break;
       case "reset0": S.confirmReset = false; break;
       case "reset2":
-        S.fish = 0; S.levels = { M: 1, R: 1 }; S.hist = { M: [], R: [] };
-        S.stats = { solved: { M: 0, R: 0 }, errors: { zehner: 0, knapp: 0, dreher: 0, andere: 0 }, hints: 0 };
+        S.fish = 0; S.game = { M: Store.emptyGame("M"), R: Store.emptyGame("R") };
+        S.stats = Store.emptyStats(); S.eltSel = { M: "", R: "" };
         S.confirmReset = false; save(); break;
     }
     render();
@@ -412,6 +491,27 @@ import "./style.css";
     const el = e.target.closest("[data-act]");
     if (el) act(el.dataset.act, el.dataset);
   });
+  $app.addEventListener("change", (e) => {
+    const b = e.target.dataset && e.target.dataset.bind;
+    if (b === "station-M") S.eltSel.M = e.target.value;
+    if (b === "station-R") S.eltSel.R = e.target.value;
+  });
+  // Knöpfe, die 2 Sekunden gehalten werden müssen (Schutz gegen Versehen, zum Beispiel auf der Elternseite)
+  let holdTimer = null;
+  function holdCancel() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    document.querySelectorAll(".holding").forEach((x) => x.classList.remove("holding"));
+  }
+  function holdStart(el) {
+    holdCancel();
+    el.classList.add("holding");
+    holdTimer = setTimeout(() => { holdTimer = null; el.classList.remove("holding"); act(el.dataset.holdAct, el.dataset); }, 2000);
+  }
+  $app.addEventListener("pointerdown", (e) => { const el = e.target.closest("[data-hold-act]"); if (el) holdStart(el); });
+  document.addEventListener("pointerup", holdCancel);
+  document.addEventListener("pointercancel", holdCancel);
+  $app.addEventListener("keydown", (e) => { const el = e.target.closest && e.target.closest("[data-hold-act]"); if (el && (e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); holdStart(el); } });
+  $app.addEventListener("keyup", (e) => { if (e.key === "Enter" || e.key === " ") holdCancel(); });
   $app.addEventListener("input", (e) => {
     const b = e.target.dataset.bind;
     if (b === "code") S.codeInput = e.target.value;

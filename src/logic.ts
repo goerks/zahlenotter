@@ -24,17 +24,21 @@ export interface Task {
   solved: boolean;
   showSteps: boolean[] | null;
   revealed: number[];
+  // Station im Pfad (zum Beispiel "2c") und Etiketten: welche Fähigkeiten die Aufgabe verlangt
+  station: string;
+  tags: string[];
   // Mauer
   n?: number;
   // Reihe
   diffs?: number[];
   kind?: ReiheKind;
   announced?: boolean;
+  arcs?: boolean;
   text?: string;
   rule?: string;
 }
-export interface Sheet { code: string; type: TaskType; level: Level; tasks: Task[]; }
-export interface ParsedCode { type: TaskType; level: Level; seed: string; code: string; }
+export interface Sheet { code: string; type: TaskType; level: Level; station: string; tasks: Task[]; }
+export interface ParsedCode { type: TaskType; level: Level; station: string; seed: string; code: string; }
 export interface Hint { cell: number; eq: string | null; kind?: "add" | "sub"; }
 export interface HintResult { cell: number | null; text: string; }
 
@@ -79,10 +83,54 @@ export function newSeed(len?: number): string {
   for (let i = 0; i < (len || 5); i++) s += ALPHA[Math.floor(Math.random() * ALPHA.length)];
   return s;
 }
-export const makeCode = (type: TaskType, level: Level): string => type + level + "-" + newSeed(5);
+// ---------- Stationen (der Pfad) ----------
+// Jede Klasse (Stufe 1 bis 3) hat Stationen a, b, c ... Die mit «standard» entsprechen genau
+// dem Verhalten der früheren Stufen: Aufgaben und Codes bleiben dieselben wie vorher.
+export interface StationInfo { id: string; level: Level; name: string; standard: boolean }
+const mk = (rows: [string, string, boolean?][]): StationInfo[] =>
+  rows.map(([id, name, standard]) => ({ id, level: +id[0] as Level, name, standard: !!standard }));
+export const STATIONS: Record<TaskType, StationInfo[]> = {
+  M: mk([
+    ["1a", "Zusammenzählen bis 10"],
+    ["1b", "Zusammenzählen bis 20", true],
+    ["2a", "Zehner und Einer bis 50"],
+    ["2b", "Abziehen bis 50"],
+    ["2c", "Abziehen bis 100", true],
+    ["2d", "Einmal über den Zehner rechnen"],
+    ["3a", "Über den Zehner rechnen"],
+    ["3b", "Höhere Mauer mit 4 Reihen"],
+    ["3c", "Abziehen auf zwei Ebenen", true],
+  ]),
+  R: mk([
+    ["1a", "Vorwärts: +1 und +2"],
+    ["1b", "Vorwärts: +5 und +10"],
+    ["1c", "Schritte gemischt", true],
+    ["2a", "Vorwärts und rückwärts"],
+    ["2b", "Mehr Schrittgrössen"],
+    ["2c", "Ohne Bögen", true],
+    ["3a", "Grosse Schritte"],
+    ["3b", "Regel entdecken"],
+    ["3c", "Wechselnde Schritte"],
+    ["3d", "Wachsende Schritte", true],
+  ]),
+};
+export const stationInfo = (type: TaskType, id: string): StationInfo | undefined => STATIONS[type].find((s) => s.id === id);
+export const standardStation = (type: TaskType, level: Level): StationInfo => STATIONS[type].find((s) => s.standard && s.level === level)!;
+export const stationIndex = (type: TaskType, id: string): number => STATIONS[type].findIndex((s) => s.id === id);
+
+export function makeCode(type: TaskType, level: Level, station?: string): string {
+  const info = (station && stationInfo(type, station)) || standardStation(type, level);
+  // Die Standard-Station behält das alte Format (M2-K7P2Q), die anderen tragen den Stationsbuchstaben (M2B-K7P2Q).
+  return type + info.level + (info.standard ? "" : info.id[1].toUpperCase()) + "-" + newSeed(5);
+}
 export function parseCode(raw: unknown): ParsedCode | null {
-  const m = /^([MR])([1-3])-([A-HJ-NP-Z2-9]{5})$/.exec(String(raw || "").toUpperCase().replace(/\s+/g, ""));
-  return m ? { type: m[1] as TaskType, level: +m[2] as Level, seed: m[3], code: m[0] } : null;
+  const m = /^([MR])([1-3])([A-D]?)-([A-HJ-NP-Z2-9]{5})$/.exec(String(raw || "").toUpperCase().replace(/\s+/g, ""));
+  if (!m) return null;
+  const type = m[1] as TaskType, level = +m[2] as Level;
+  const info = m[3] ? stationInfo(type, m[2] + m[3].toLowerCase()) : standardStation(type, level);
+  if (!info) return null;
+  const code = type + level + (info.standard ? "" : info.id[1].toUpperCase()) + "-" + m[4];
+  return { type, level, station: info.id, seed: m[4], code };
 }
 
 // ---------- Zahlenmauer ----------
@@ -106,13 +154,39 @@ export function propagate(n: number, known: (number | null)[]): boolean {
   }
   return known.every((v) => v != null);
 }
-export const MAUER_CFG: Record<Level, { n: number; max: number; lo: number; hi: number; noCarry: boolean; needCarry: boolean; blanks: [number, number]; baseBlank: number }> = {
-  1: { n: 3, max: 20, lo: 1, hi: 7, noCarry: false, needCarry: false, blanks: [2, 3], baseBlank: 0 },
-  2: { n: 3, max: 100, lo: 3, hi: 40, noCarry: true, needCarry: false, blanks: [3, 4], baseBlank: 1 },
-  3: { n: 4, max: 100, lo: 3, hi: 28, noCarry: false, needCarry: true, blanks: [5, 7], baseBlank: 2 },
+// Stellschrauben je Station. Zwischen zwei aufeinanderfolgenden Stationen ändert sich höchstens eine
+// (Ausnahme: Klassenwechsel, dort wird der Zahlenraum grösser und der Zehnerübergang beginnt neu).
+export type Uebergang = "egal" | "keine" | "einer" | "mind1";
+export interface MauerDims { raum: 10 | 20 | 50 | 100; hoehe: 3 | 4; ueb: Uebergang; basis: 0 | 1 | 2 }
+export const MAUER_DIMS: Record<string, MauerDims> = {
+  "1a": { raum: 10, hoehe: 3, ueb: "egal", basis: 0 },
+  "1b": { raum: 20, hoehe: 3, ueb: "egal", basis: 0 },
+  "2a": { raum: 50, hoehe: 3, ueb: "keine", basis: 0 },
+  "2b": { raum: 50, hoehe: 3, ueb: "keine", basis: 1 },
+  "2c": { raum: 100, hoehe: 3, ueb: "keine", basis: 1 },
+  "2d": { raum: 100, hoehe: 3, ueb: "einer", basis: 1 },
+  "3a": { raum: 100, hoehe: 3, ueb: "mind1", basis: 1 },
+  "3b": { raum: 100, hoehe: 4, ueb: "mind1", basis: 1 },
+  "3c": { raum: 100, hoehe: 4, ueb: "mind1", basis: 2 },
 };
-function genMauer(rng: Rng, level: Level) {
-  const C = MAUER_CFG[level];
+export interface MauerCfg { n: number; max: number; lo: number; hi: number; ueb: Uebergang; blanks: [number, number]; baseBlank: number; baseExact: boolean }
+export function mauerCfg(station: string): MauerCfg {
+  const d = MAUER_DIMS[station];
+  const std = STATIONS.M.find((s) => s.id === station)!.standard;
+  const n = d.hoehe;
+  const [lo, hi] = n === 4 ? [3, 28] : d.raum === 10 ? [1, 3] : d.raum === 20 ? [1, 7] : d.raum === 50 ? [3, 20] : [3, 40];
+  const blanks: [number, number] = n === 4 ? [5, 7] : d.raum <= 20 ? [2, 3] : [3, 4];
+  // Die Standard-Stationen zählen Basis-Lücken wie früher als Höchstwert, die neuen genau.
+  return { n, max: d.raum, lo, hi, ueb: d.ueb, blanks, baseBlank: d.basis, baseExact: !std };
+}
+// Frühere Form der Konfiguration je Stufe (für Tests und Anzeige), abgeleitet von den Standard-Stationen.
+const oldCfg = (c: MauerCfg) => ({ n: c.n, max: c.max, lo: c.lo, hi: c.hi, noCarry: c.ueb === "keine", needCarry: c.ueb === "mind1", blanks: c.blanks, baseBlank: c.baseBlank });
+export const MAUER_CFG: Record<Level, { n: number; max: number; lo: number; hi: number; noCarry: boolean; needCarry: boolean; blanks: [number, number]; baseBlank: number }> = {
+  1: oldCfg(mauerCfg("1b")),
+  2: oldCfg(mauerCfg("2c")),
+  3: oldCfg(mauerCfg("3c")),
+};
+function genMauer(rng: Rng, C: MauerCfg) {
   const n = C.n, total = (n * (n + 1)) / 2, baseStart = mid(n - 1, 0);
   const rel = relations(n);
   for (let attempt = 0; attempt < 400; attempt++) {
@@ -121,8 +195,10 @@ function genMauer(rng: Rng, level: Level) {
     for (let r = n - 2; r >= 0; r--) for (let i = 0; i <= r; i++) sol[mid(r, i)] = sol[mid(r + 1, i)] + sol[mid(r + 1, i + 1)];
     if (sol[0] > C.max) continue;
     const carries = rel.map(([, a, b]) => (sol[a] % 10) + (sol[b] % 10) >= 10);
-    if (C.noCarry && carries.some(Boolean)) continue;
-    if (C.needCarry && !carries.some(Boolean)) continue;
+    const nCarry = carries.filter(Boolean).length;
+    if (C.ueb === "keine" && nCarry > 0) continue;
+    if (C.ueb === "mind1" && nCarry === 0) continue;
+    if (C.ueb === "einer" && nCarry !== 1) continue;
     const target = ri(rng, C.blanks[0], C.blanks[1]);
     const blanks: number[] = [];
     let baseBlanks = 0;
@@ -135,6 +211,7 @@ function genMauer(rng: Rng, level: Level) {
       if (propagate(n, known)) { blanks.push(id); if (isBase) baseBlanks++; }
     }
     if (blanks.length < C.blanks[0]) continue;
+    if (C.baseExact && baseBlanks !== C.baseBlank) continue;
     return { n, sol, given: sol.map((_, i) => !blanks.includes(i)) };
   }
   throw new Error("Mauer-Generator: keine Aufgabe gefunden");
@@ -142,7 +219,65 @@ function genMauer(rng: Rng, level: Level) {
 
 // ---------- Zahlenreihe ----------
 const fmtStep = (d: number) => (d < 0 ? "−" : "+") + Math.abs(d);
-function genReihe(rng: Rng, level: Level) {
+// Stellschrauben der Reihen-Stationen (nur zum Prüfen der Regel «eine Änderung je Station»;
+// die Standard-Stationen erzeugt weiter der unveränderte Generator genReiheStandard).
+export interface ReiheDims { schritte: string; richtung: "vor" | "beide"; regel: "genannt" | "entdecken"; boegen: "sichtbar" | "verdeckt"; art: "konstant" | "konstant+wechselnd" | "alle" }
+export const REIHE_DIMS: Record<string, ReiheDims> = {
+  "1a": { schritte: "1,2", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
+  "1b": { schritte: "5,10", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
+  "1c": { schritte: "1,2,5,10", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
+  "2a": { schritte: "1,2,5,10", richtung: "beide", regel: "genannt", boegen: "sichtbar", art: "konstant" },
+  "2b": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "sichtbar", art: "konstant" },
+  "2c": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "verdeckt", art: "konstant" },
+  "3a": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "genannt", boegen: "verdeckt", art: "konstant" },
+  "3b": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "konstant" },
+  "3c": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "konstant+wechselnd" },
+  "3d": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "alle" },
+};
+interface ReiheGen { steps: number[]; back: boolean; announced: boolean; arcs: boolean; kinds: ReiheKind[]; limit: (s: number) => number; max: number; anchors: number[][] }
+const A1 = [[0, 1, 7], [0, 1, 4], [0, 1, 5]], A2 = [[0, 2, 5], [0, 1, 7], [1, 4, 7], [0, 3, 7]], A3 = [[0, 1, 7], [0, 2, 6], [1, 4, 7]];
+const REIHE_GEN: Record<string, ReiheGen> = {
+  "1a": { steps: [1, 2], back: false, announced: true, arcs: true, kinds: ["const"], limit: () => 20, max: 20, anchors: A1 },
+  "1b": { steps: [5, 10], back: false, announced: true, arcs: true, kinds: ["const"], limit: (s) => (s === 5 ? 50 : 100), max: 100, anchors: A1 },
+  "2a": { steps: [1, 2, 5, 10], back: true, announced: true, arcs: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
+  "2b": { steps: [2, 3, 4, 5, 10], back: true, announced: true, arcs: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
+  "3a": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: true, arcs: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
+  "3b": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcs: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
+  "3c": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcs: false, kinds: ["const", "alt"], limit: () => 100, max: 100, anchors: A3 },
+};
+function genReiheStation(rng: Rng, station: string) {
+  const C = REIHE_GEN[station];
+  const LEN = 8;
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const kind: ReiheKind = C.kinds.length > 1 ? pick(rng, C.kinds) : C.kinds[0];
+    let diffs: number[], start: number, announced: boolean;
+    if (kind === "const") {
+      const s = pick(rng, C.steps);
+      const back = C.back && rng() < 0.5;
+      const lim = C.limit(s);
+      diffs = new Array(LEN - 1).fill(back ? -s : s);
+      start = back ? ri(rng, 7 * s, lim) : s >= 5 ? ri(rng, 0, Math.floor((lim - 7 * s) / s)) * s : ri(rng, 0, lim - 7 * s);
+      announced = C.announced;
+    } else {
+      const p = pick(rng, [[1, 2], [2, 1], [2, 3], [3, 2], [5, 1], [1, 5], [10, 5], [5, 10], [5, -2], [3, -1]]);
+      diffs = Array.from({ length: LEN - 1 }, (_, i) => p[i % 2]);
+      start = ri(rng, 10, 40);
+      announced = false;
+    }
+    const sol = [start];
+    diffs.forEach((d) => sol.push(sol[sol.length - 1] + d));
+    if (sol.some((v) => v < 0 || v > C.max)) continue;
+    const anchors = kind === "alt" ? [0, 1, 2, 7] : pick(rng, C.anchors);
+    const s0 = Math.abs(diffs[0]);
+    const text = announced
+      ? `Zähle ${diffs[0] < 0 ? "rückwärts" : "vorwärts"} in ${s0}er-Schritten.`
+      : "Finde die Regel und setze die Reihe fort.";
+    const rule = diffs.slice(0, 4).map(fmtStep).join(", ") + " …";
+    return { sol, diffs, kind, announced, arcs: C.arcs, text, rule, given: sol.map((_, i) => anchors.includes(i)) };
+  }
+  throw new Error("Reihen-Generator: keine Aufgabe gefunden (" + station + ")");
+}
+function genReiheStandard(rng: Rng, level: Level) {
   const LEN = 8;
   for (let attempt = 0; attempt < 400; attempt++) {
     let kind: ReiheKind = "const", diffs: number[], announced: boolean, start: number, limit = 100;
@@ -202,24 +337,62 @@ function genReihe(rng: Rng, level: Level) {
 }
 
 // ---------- Aufgabe ----------
-export function makeTask(type: TaskType, level: Level, seed: string): Task {
-  const rng = rngFrom(type + level + ":" + seed);
-  const base: Partial<Task> & { sol: number[]; given: boolean[] } = type === "M" ? genMauer(rng, level) : genReihe(rng, level);
+// Etiketten: welche Fähigkeiten verlangt die Aufgabe? Sie werden aus der Aufgabe berechnet, nicht gespeichert.
+function tagsOfMauer(station: string, n: number, sol: number[], given: boolean[]): string[] {
+  const tags: string[] = [];
+  const known: (number | null)[] = sol.map((v, i) => (given[i] ? v : null));
+  const rel = relations(n);
+  let add = false, sub = false, changed = true;
+  while (changed) {
+    changed = false;
+    for (const [t, a, b] of rel) {
+      if (known[t] != null && known[a] != null && known[b] == null) { known[b] = sol[b]; sub = true; changed = true; }
+      else if (known[t] != null && known[b] != null && known[a] == null) { known[a] = sol[a]; sub = true; changed = true; }
+      else if (known[a] != null && known[b] != null && known[t] == null) { known[t] = sol[t]; add = true; changed = true; }
+    }
+  }
+  if (add) tags.push("addieren");
+  if (sub) tags.push("abziehen");
+  const baseStart = mid(n - 1, 0);
+  if (sol.some((_, i) => i >= baseStart && !given[i])) tags.push("abziehen-basis");
+  if (rel.some(([t, a, b]) => (sol[a] % 10) + (sol[b] % 10) >= 10 && [t, a, b].some((i) => !given[i]))) tags.push("zehneruebergang");
+  tags.push("zahlenraum-" + MAUER_DIMS[station].raum, "hoehe-" + n);
+  return tags;
+}
+function tagsOfReihe(diffs: number[], kind: ReiheKind, announced: boolean, arcs: boolean): string[] {
+  const tags = [diffs[0] < 0 ? "rueckwaerts" : "vorwaerts", kind === "const" ? "konstant" : kind === "alt" ? "wechselnd" : "wachsend"];
+  if (kind === "const") tags.push("schritt-" + Math.abs(diffs[0]));
+  tags.push(announced ? "regel-genannt" : "regel-entdecken");
+  if (arcs) tags.push("bogen-sichtbar");
+  return tags;
+}
+
+export function makeTask(type: TaskType, level: Level, seed: string, station?: string): Task {
+  const info = (station && stationInfo(type, station)) || standardStation(type, level);
+  const lvl = info.level;
+  // Standard-Stationen behalten den alten Zufallsstart (alte Codes ergeben dieselbe Aufgabe wie früher).
+  const rng = rngFrom(info.standard ? type + lvl + ":" + seed : type + info.id + ":" + seed);
+  const base: Partial<Task> & { sol: number[]; given: boolean[] } =
+    type === "M" ? genMauer(rng, mauerCfg(info.id)) : info.standard ? genReiheStandard(rng, lvl) : genReiheStation(rng, info.id);
   const total = base.sol.length;
+  const arcs = base.arcs ?? lvl === 1;
+  const tags = type === "M"
+    ? tagsOfMauer(info.id, base.n!, base.sol, base.given)
+    : tagsOfReihe(base.diffs!, base.kind!, base.announced!, arcs);
   return Object.assign(base, {
-    type, level, seed,
+    type, level: lvl, seed, station: info.id, tags,
     val: new Array(total).fill(""),
     st: base.given.map((g) => (g ? "given" : "")),
     errors: 0, hintsUsed: 0, hintStage: 0, seen: {}, errLog: [], solved: false,
-    showSteps: type === "R" ? new Array(7).fill(level === 1) : null,
+    showSteps: type === "R" ? new Array(7).fill(arcs) : null,
     revealed: [],
-  });
+  }) as Task;
 }
 export const makeSheet = (code: string): Sheet | null => {
   const c = parseCode(code);
   if (!c) return null;
   const count = c.type === "M" ? 4 : 6;
-  return { code: c.code, type: c.type, level: c.level, tasks: Array.from({ length: count }, (_, i) => makeTask(c.type, c.level, c.code + "/" + (i + 1))) };
+  return { code: c.code, type: c.type, level: c.level, station: c.station, tasks: Array.from({ length: count }, (_, i) => makeTask(c.type, c.level, c.code + "/" + (i + 1), c.station)) };
 };
 
 // ---------- Pruefen ----------
