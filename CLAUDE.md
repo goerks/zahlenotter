@@ -13,7 +13,7 @@ Alles, was Michael oder das Kind liest (Tickets, Kommentare, Docs, Oberfläche),
 5. **Nichts erfinden, nichts raten, wo Michael entscheiden muss.** Unklar bedeutet Rückfrage, nicht bauen. **Fragen an Michael stelle ich interaktiv** (Auswahlfrage mit dem Werkzeug «AskUserQuestion», Empfehlung zuerst, höchstens vier Fragen je Aufruf, kurze Optionen), nicht als Textliste (Vorgabe von Michael, 26. November 2026). Die Antworten halte ich im Ticket oder im Dokument fest.
 6. **Ehrlich berichten.** Was nur am echten iPad oder mit dem Kind prüfbar ist, wird als offene Handprüfung genannt, nie als geprüft.
 7. **Zwei Tore gehören Michael:** «Freigabe» (vor dem Bauen) und «Abnahme» (vor dem Merge). Kein Agent und kein Rollenwechsel gibt ein Tor frei. «ok» oder «passt» allein gilt nicht als Freigabe oder Abnahme, wenn nicht klar ist, wozu.
-8. **Code kommt nur über einen Pull Request** (Zweig `feature/<ticket>-<kurzname>` oder der Zweig der Sitzung). Nie direkt auf `main`.
+8. **Code und Dokumente kommen nur über einen Pull Request, und jede Aufgabe bekommt einen eigenen Zweig** `feature/<ticketnummer>-<kurzname>`, frisch von `main` angelegt (Vorgabe von Michael, 26. November 2026). Ein Zweig wird nicht für mehrere Aufgaben wiederverwendet. Nie direkt auf `main`.
 9. Keine Geheimnisse im Repo. Keine Releases, Zweige oder Dateien löschen ohne Michaels OK.
 10. Kostenlose Dienste nur (GitHub Free, Pages).
 
