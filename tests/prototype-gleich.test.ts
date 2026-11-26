@@ -1,10 +1,13 @@
 // Beweis für «Verhalten unverändert»: Die TypeScript-Logik liefert für viele Seeds
 // genau dieselben Aufgaben wie der Prototyp (prototype/src/logic.js).
+// Die Prototyp-Datei ist ein CommonJS-Skript; das Projekt ist ein ES-Modul. Deshalb wird
+// sie als Text gelesen und in einer Funktion ausgeführt, statt sie zu importieren.
 import { describe, it, expect } from "vitest";
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import * as ZO from "../src/logic";
 
-const OLD = createRequire(import.meta.url)("../prototype/src/logic.js");
+const code = readFileSync(new URL("../prototype/src/logic.js", import.meta.url), "utf8");
+const OLD = new Function("module", code + "\n;return module.exports;")({ exports: {} });
 const strip = (t: any) => JSON.stringify({ sol: t.sol, given: t.given, diffs: t.diffs, kind: t.kind, text: t.text, rule: t.rule, n: t.n });
 
 describe("gleich wie der Prototyp", () => {
