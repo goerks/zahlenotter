@@ -65,7 +65,7 @@ Die Feinstufen nutzen den vorhandenen Generator, schalten aber die Stellschraube
 - **Auffangbahn:** Zwei Aufgaben in Folge mit 1 Stern führen **eine Feinstufe zurück** («Wir üben noch einen Schritt vorher.»). Nie über eine Welt hinaus nach unten. (Entscheid von Michael: kein automatischer Abstieg, sondern ein Angebot, siehe Abschnitt 8.)
 - **Pause statt Frust:** Nach zwei Aufgaben mit 1 Stern in Folge bietet Plitsch an, eine leichtere Aufgabe zu üben oder Pause zu machen. Das Kind entscheidet.
 - Das Kind kann eine Feinstufe jederzeit **wiederholen**. Eltern können eine Feinstufe festlegen.
-- Annahme, vor einem Test mit dem Kind zu prüfen: «4 von 5» ist streng genug, um Sicherheit zu zeigen, und locker genug, um bei einem einzelnen Fehlertyp weiterzukommen.
+- Annahme, nicht gemessen (Michael hat entschieden, ohne vorherigen Test mit dem Kind zu bauen): «4 von 5» ist streng genug, um Sicherheit zu zeigen, und locker genug, um bei einem einzelnen Fehlertyp weiterzukommen.
 
 ### 3.4 Sichtbar für das Kind und die Eltern
 
@@ -156,7 +156,7 @@ Statt fester Stufen gibt es **Fähigkeiten**, zum Beispiel «Addieren bis 20», 
 1. **Pfad mit Feinstufen und neue Aufstiegsregel (4 von 5)** lösen die zwei Hauptprobleme (Bündelung der Stellschrauben, zu strenger Aufstieg) mit überschaubarem Aufwand und bleiben für das Kind leicht verständlich.
 2. Jede Aufgabe bekommt schon jetzt **Etiketten** (welche Fähigkeit sie verlangt). Das kostet wenig, macht die Fehlerauswertung je Fähigkeit möglich und lässt Konzept B später als Auswertung und als Knopf «Gezielt üben» aufsetzen, ohne den Aufbau umzubauen.
 3. **«Gezielt üben» als erste Erweiterung:** Häufen sich Zehnerfehler (zum Beispiel drei in einer Einheit), bietet Plitsch fünf Aufgaben mit einer Stufe darunter an, nur mit Zehnerübergang. Das Kind kann ablehnen.
-4. Vor dem Bau ein **Test mit der Tochter** an einem Prototyp der Aufstiegsregel: Wie viele Aufgaben braucht sie je Station, und kippt sie in Frust oder Langeweile?
+4. Vor dem Bau ein **Test mit der Tochter** an einem Prototyp der Aufstiegsregel: Wie viele Aufgaben braucht sie je Station, und kippt sie in Frust oder Langeweile? (Michael hat entschieden, darauf zu verzichten und gleich zu bauen, siehe Abschnitt 8.)
 
 ## 7. Was nicht geklärt ist
 
@@ -167,7 +167,7 @@ Statt fester Stufen gibt es **Fähigkeiten**, zum Beispiel «Addieren bis 20», 
 
 ## 8. Entscheide von Michael (26. November 2026)
 
-Michael hat die Fragen per Auswahl beantwortet. Die Antworten stehen auch als Kommentar «Koordinator: Entscheid» in Ticket 3.
+Michael hat die Fragen per Auswahl beantwortet. Die Antworten stehen auch als Kommentare «Koordinator: Entscheid» in Ticket 3.
 
 | Frage | Entscheid |
 |---|---|
@@ -175,7 +175,6 @@ Michael hat die Fragen per Auswahl beantwortet. Die Antworten stehen auch als Ko
 | Soll das Kind den Pfad sehen? | **Ja**, Pfad mit Stationen; die Feinstufen stehen auch auf der Elternseite |
 | Wer darf die Feinstufe wählen? | **App und Eltern** entscheiden über das Weiterkommen, das **Kind darf eine geschaffte Station wiederholen** |
 | Abstieg automatisch? | **Nein, Angebot statt Automatik**: Nach zwei Aufgaben mit 1 Stern bietet Plitsch eine leichtere Aufgabe oder Pause an, das Kind entscheidet |
+| Aufstiegsregel zuerst mit der Tochter testen? | **Nein, gleich bauen** |
 
-**Noch offen:** Soll die Aufstiegsregel «4 von 5 sicher» zuerst mit der Tochter getestet werden, bevor gebaut wird? Diese Frage wurde noch nicht gestellt.
-
-Das ist ein Konzept-Entscheid und keine Freigabe zum Bauen. Gebaut wird erst nach einem eigenen Ticket mit Dossier (Pädagogin, UX, Architekt, Tester) und Michaels Freigabe.
+Das ist ein Konzept- und Vorgehens-Entscheid und keine Freigabe zum Bauen. Die Umsetzung läuft in Ticket 7. Gebaut wird erst nach dem Dossier (Pädagogin, UX, Architekt, Tester) und Michaels ausdrücklicher Freigabe.
