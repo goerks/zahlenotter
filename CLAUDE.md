@@ -10,7 +10,7 @@ Alles, was Michael oder das Kind liest (Tickets, Kommentare, Docs, Oberfläche),
 2. **Keine Dark Patterns.** Keine Streak-Verlustangst, keine Zufallsbelohnungen, kein Zeitdruck als Standard, Einheiten von etwa 5 Aufgaben. Falsche Felder werden orange, nie rot.
 3. **Kind zuerst.** Jede Oberfläche muss für 5- bis 10-Jährige auf iPad und Desktop funktionieren: Touchziele ab 48 px, gut lesbar, kurze Sätze, kein Frust.
 4. **Eine Aufgabe ist Typ + Stufe + Seed.** Der Generator ist deterministisch, jede Aufgabe lösbar und eindeutig. Neue Übungstypen folgen demselben Muster.
-5. **Nichts erfinden, nichts raten, wo Michael entscheiden muss.** Unklar bedeutet Rückfrage, nicht bauen.
+5. **Nichts erfinden, nichts raten, wo Michael entscheiden muss.** Unklar bedeutet Rückfrage, nicht bauen. **Fragen an Michael stelle ich interaktiv** (Auswahlfrage mit dem Werkzeug «AskUserQuestion», Empfehlung zuerst, höchstens vier Fragen je Aufruf, kurze Optionen), nicht als Textliste (Vorgabe von Michael, 26. November 2026). Die Antworten halte ich im Ticket oder im Dokument fest.
 6. **Ehrlich berichten.** Was nur am echten iPad oder mit dem Kind prüfbar ist, wird als offene Handprüfung genannt, nie als geprüft.
 7. **Zwei Tore gehören Michael:** «Freigabe» (vor dem Bauen) und «Abnahme» (vor dem Merge). Kein Agent und kein Rollenwechsel gibt ein Tor frei. «ok» oder «passt» allein gilt nicht als Freigabe oder Abnahme, wenn nicht klar ist, wozu.
 8. **Code kommt nur über einen Pull Request** (Zweig `feature/<ticket>-<kurzname>` oder der Zweig der Sitzung). Nie direkt auf `main`.
