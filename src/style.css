@@ -2,7 +2,7 @@
   --bg:#FFF7E8; --card:#FFFFFF; --ink:#23355B; --muted:#6B7A99;
   --teal:#1F8A8A; --teal-d:#166B6B; --teal-l:#DDF1F0;
   --orange:#F39C4A; --orange-l:#FFE6C7; --green:#4CAF7A; --green-l:#D9F2E3;
-  --gold:#F4B942; --line:#D9DEE8; --given:#E6EEF9;
+  --gold:#F4B942; --line:#D9DEE8; --given:#E6EEF9; --river:#CDEAEA;
   --cw:clamp(52px,11vw,104px);
   font-family:"Trebuchet MS","Segoe UI Rounded","Arial Rounded MT Bold",system-ui,sans-serif;
 }
@@ -107,6 +107,39 @@ input.txt{font:inherit;min-height:48px;border-radius:12px;border:2px solid var(-
 .resultchips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .rchip{padding:4px 12px;border-radius:99px;font-weight:700;font-size:15px}
 .rchip.ok{background:var(--green-l);color:#237a4a}.rchip.bad{background:var(--orange-l);color:#a55a12}.rchip.open{background:var(--line)}
+
+/* Pfad (Spielbrett mit Fluss und Stationen) */
+.world-btns,.stack{display:flex;flex-direction:column;gap:10px}
+.board{position:relative;background:linear-gradient(#e9f6f6,#dff1f0);border-radius:24px;box-shadow:0 4px 0 var(--line);overflow:hidden;max-width:948px;margin:0 auto}
+.board .river{position:absolute;inset:0;width:100%;height:100%}
+.tdot{position:absolute;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;border:3px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;padding:0}
+.tdot.vor{background:var(--teal-l);border-color:#B7DEDC}
+.tdot.done{background:var(--green-l);border-color:var(--green)}
+.tdot.done:after{content:"\2713";position:absolute;right:-5px;top:-7px;width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center}
+.tdot.now{width:72px;height:72px;border:4px solid var(--orange);box-shadow:0 0 0 5px var(--orange-l)}
+.tdot.now svg{width:54px;height:54px}
+.tdot.todo{border-style:dashed;color:#8f9bb3}
+.tdot:focus-visible,.holdbtn:focus-visible{outline:4px solid var(--teal);outline-offset:4px}
+.klass{position:absolute;font-weight:800;color:var(--teal-d);background:#fff;border-radius:999px;padding:4px 14px;font-size:16px;box-shadow:0 2px 0 var(--line)}
+.flagpos{position:absolute;transform:translate(-50%,-50%)}
+.flag{width:44px;height:48px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:14px;color:var(--muted);margin:12px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid var(--line)}
+.lg.done{background:var(--green-l);border-color:var(--green)}
+.lg.vor{background:var(--teal-l);border-color:#B7DEDC}
+.lg.now{border-color:var(--orange)}
+.lg.todo{border-style:dashed}
+.rowp{display:flex;flex-direction:column;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.festlegen{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select.txt{font:inherit;min-height:48px;border-radius:12px;border:2px solid var(--line);padding:6px 12px;background:#fff;color:var(--ink);max-width:100%}
+.btn.holdbtn{min-height:48px}
+.holdbtn{position:relative;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+.holdbtn>span{position:relative;z-index:1}
+.holdbtn:after{content:"";position:absolute;left:0;top:0;bottom:0;width:0;background:var(--orange-l)}
+.holdbtn.holding:after{width:100%;transition:width 2s linear}
+table.fe{width:100%;border-collapse:collapse;font-size:15px;min-width:420px}
+table.fe th,table.fe td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
 
 /* Druckblatt */
 .sheet{background:#fff;color:#000;border:2px solid #222;border-radius:14px;padding:18px 20px;margin:12px auto;max-width:760px}
