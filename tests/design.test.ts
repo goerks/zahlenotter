@@ -102,3 +102,26 @@ describe("AK-5.1 Das Druckblatt bleibt unverändert", () => {
     expect(css).not.toContain(".sheet .cell{min-height");
   });
 });
+
+describe("Natel: eigene Regeln nur unterhalb von 600 px (Prioritäten Tablet, Desktop, Natel)", () => {
+  const start = css.indexOf("@media (max-width:600px){");
+  let end = start;
+  if (start >= 0) { let depth = 0; for (let i = css.indexOf("{", start); i < css.length; i++) { if (css[i] === "{") depth++; if (css[i] === "}") { depth--; if (depth === 0) { end = i; break; } } } }
+  const block = css.slice(start, end);
+  it("es gibt genau einen Block für das Natel", () => {
+    expect(start).toBeGreaterThan(-1);
+    expect(css.split("@media (max-width:600px)").length - 1).toBe(1);
+  });
+  it("der Titel schiebt den Fisch-Chip nicht mehr über den Rand", () => {
+    expect(block).toContain(".topbar h2{flex:1;min-width:0;");
+  });
+  it("die Zahlenreihe rückt zusammen, die Pfad-Stationen bleiben mindestens 48 px", () => {
+    expect(block).toContain(".rrow{--g:3px;");
+    expect(block).toMatch(/\.tdot\{width:(4[89]|[5-9]\d)px;height:(4[89]|[5-9]\d)px/);
+    expect(block).toMatch(/\.pad button\{min-height:(4[89]|[5-9]\d)px/);
+  });
+  it("die Natel-Regeln stehen nach den allgemeinen Regeln (sonst würden sie überstimmt)", () => {
+    expect(start).toBeGreaterThan(css.indexOf(".tdot{position:absolute"));
+    expect(start).toBeGreaterThan(css.indexOf(".topbar{"));
+  });
+});

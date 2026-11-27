@@ -191,7 +191,7 @@ import "./style.css";
       const st = Pfad.stationStatus(type, g, q.id);
       return `<button class="tdot ${st}" style="left:${q.x}%;top:${q.y}px" data-act="pfadStation" data-id="${q.id}" aria-label="${esc(Pfad.stationLabel(type, q.id, st))}">${st === "now" ? mini : Pfad.nummer(type, q.id)}</button>`;
     }).join("");
-    const klass = rows.map((z, r) => { const f = pl.find((q) => q.id === z[0].id); return `<span class="klass" style="left:calc(${f.x}% - 44px);top:${f.y - 76}px">Klasse ${r + 1}</span>`; }).join("");
+    const klass = rows.map((z, r) => { const f = pl.find((q) => q.id === z[0].id); return `<span class="klass" style="left:max(6px, calc(${f.x}% - 44px));top:${f.y - 76}px">Klasse ${r + 1}</span>`; }).join("");
     const lastRow = rows[2], flag = lastRow.length < Pfad.SLOT_X.length ? `<span class="flagpos" style="left:${Pfad.SLOT_X[lastRow.length]}%;top:${Pfad.ZEILE_Y[2]}px">${flagIcon()}</span>` : "";
     const info = ZO.stationInfo(type, g.station);
     return `<div class="noprint"><div class="topbar"><button class="btn alt small" data-act="go" data-to="home">${backIcon} Zurück</button><h2>Dein Pfad: ${GAME_NAME[type]}</h2><span class="chip">${fishIcon()} ${S.fish}</span></div>

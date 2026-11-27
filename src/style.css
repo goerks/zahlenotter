@@ -173,11 +173,35 @@ select.txt{font:inherit;min-height:48px;border-radius:12px;border:2px solid var(
 table.fe{width:100%;border-collapse:collapse;font-size:15px;min-width:420px}
 table.fe th,table.fe td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
 
+/* Natel (schmaler als 600 px). Reihenfolge der Prioritäten: Tablet, Desktop, Natel.
+   Alles hier gilt nur für schmale Bildschirme, Tablet und Desktop bleiben unverändert. */
+@media (max-width:600px){
+  :root{--cw:clamp(48px,14vw,104px)}
+  #app{padding:10px 12px 32px}
+  .topbar h2{flex:1;min-width:0;text-align:center;font-size:18px;line-height:1.2}
+  .banner{font-size:17px;padding:8px 12px}
+  .bubble{font-size:16px}
+  .stage{padding:14px 4px}
+  .rrow{--g:3px;padding-top:40px}
+  .rc .cell{font-size:clamp(15px,4.6vw,22px);border-width:2px;border-radius:9px}
+  .arc b{font-size:12px;padding:0 2px}
+  .pad{gap:6px}
+  .pad button{min-height:52px;font-size:22px}
+  .tdot{width:52px;height:52px;font-size:19px}
+  .tdot.now{width:62px;height:62px}
+  .tdot.now svg{width:46px;height:46px}
+  .klass{font-size:13px;padding:3px 10px}
+  .legend{gap:6px 12px;font-size:13px}
+  .codecard .big{font-size:28px}
+  .codecard .copybtn{flex:1 1 auto}
+  .sheet{padding:14px 12px}
+}
+
 /* Druckblatt */
 .sheet{background:#fff;color:#000;border:2px solid #222;border-radius:14px;padding:18px 20px;margin:12px auto;max-width:760px}
 .sheet header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:12px}
 .sheet h2{font-size:24px}
-.sheet .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:18px}
+.sheet .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:18px;white-space:nowrap}
 .sheet .tasks.m{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px}
 .sheet .tasks.r{display:flex;flex-direction:column;gap:12px}
 .sheet .tasks.m .stage,.sheet .tasks.r .stage{background:none;box-shadow:none;padding:0}
