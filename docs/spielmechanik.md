@@ -38,17 +38,24 @@ Jede Aufgabe hat eine vollständige Lösung (`sol`) und eine Liste, welche Felde
   4. **Andere**.
 - Die Fehlerarten werden in der Statistik gezählt und fliessen in den Hinweistext («Schau bei den Zehnern nochmal genau hin.»), aber **nicht** in die Stufenanpassung.
 
-### 1.5 Hilfen: drei Stufen
+### 1.5 Hilfen nur auf Anfrage (Ticket 5)
 
-Ein Druck auf «Hilfe» geht eine Stufe weiter (die Zählung beginnt nach jeder Prüfung neu):
+Keine Hilfe ist von Anfang an sichtbar. Das Kind hat zwei Knöpfe; ein Schild am Knopf sagt vorher, ob die Hilfe «gratis» ist oder «1 Hilfepunkt» kostet.
+
+**Knopf «Hilfe»** (zwei Stufen, die Zählung beginnt nach jeder Prüfung neu):
 
 | Stufe | Was passiert | Kostet |
 |---|---|---|
-| 1 | Das nächste sinnvolle Feld wird markiert und pulsiert, Plitsch sagt einen Satz | nichts |
-| 2 | Rechenweg. Mauer: «Rechne: 12 + 7 = ?» bzw. «19 − 7 = ?». Reihe: Die Bögen mit den Schritten erscheinen (wo sie berechenbar sind), sonst «Vergleiche die festen Zahlen …» | 1 Hilfepunkt |
-| 3 | Das Feld wird aufgedeckt und gilt als richtig | 1 weiterer Hilfepunkt |
+| 1 | Das nächste sinnvolle Feld wird markiert und pulsiert, Plitsch sagt, dass ein zweiter Druck die Zahl verrät | nichts |
+| 2 | Das Feld wird aufgedeckt und gilt als richtig | 1 Hilfepunkt |
 
-Die Statistik «Hilfen genutzt» zählt jeden Druck auf «Hilfe», auch die kostenlose Stufe 1.
+**Knopf «Bögen zeigen»** (Reihe): Die Bögen mit den Schritten erscheinen und lassen sich mit «Bögen ausblenden» wieder wegnehmen. Bei verdeckter Regel erscheinen sie nur zwischen zwei bekannten Zahlen (vorgegeben oder richtig gelöst). In den Stationen 1a bis 2b gratis, ab 2c 1 Hilfepunkt, je Aufgabe nur einmal.
+
+**Knopf «Rechnung zeigen»** (Mauer): Über der Mauer erscheint eine Karte mit der Rechnung für den gewählten Stein, zum Beispiel «21 + 20 = ?» oder «32 − 21 = ?». Die zwei beteiligten Steine leuchten, der gesuchte ist orange umrandet. Lässt sich der gewählte Stein noch nicht ausrechnen, gilt die Rechnung für den nächsten möglichen, und dieser wird gewählt. Kostet 1 Hilfepunkt je Stein (ausblenden und wieder zeigen kostet nichts). Ist der Stein richtig gelöst, verschwindet die Karte. Der Platz für die Karte bleibt frei, damit die Mauer nicht springt.
+
+Im Prüfmodus (Papierblatt prüfen) gibt es keine Hilfen.
+
+Die Statistik «Hilfen genutzt» zählt jeden Druck auf «Hilfe» und jedes Einblenden von Bögen oder Rechnung, auch die kostenlosen.
 
 ### 1.6 Sterne und Fische
 
@@ -83,7 +90,7 @@ Die Statistik «Hilfen genutzt» zählt jeden Druck auf «Hilfe», auch die kost
 | | Mustermauer | Reihenpfad |
 |---|---|---|
 | Denkaufgabe | Summen und Differenzen in einer Pyramide | Muster erkennen und fortsetzen |
-| Hilfe Stufe 2 | Rechenweg als Gleichung | Bögen mit den Schritten |
+| Hilfe auf Anfrage | Rechnung über der Mauer (1 Hilfepunkt) | Bögen mit den Schritten (bis 2b gratis, ab 2c 1 Hilfepunkt) |
 | Regel | immer dieselbe (oben = links + rechts) | genannt oder zu entdecken (Stufe 3) |
 | Blatt | 4 Aufgaben | 6 Aufgaben |
 | Eindeutigkeit | genau eine Lösung, vom Solver geprüft | genau eine Lösung nur über Anker abgesichert |
@@ -122,7 +129,7 @@ Eine Reihe hat **8 Felder**. Einzelne Felder sind vorgegeben, den Rest füllt da
 | Richtung | nur vorwärts | 50 % rückwärts | 31 % rückwärts |
 | Zahlenraum | +1 und +2 bis 20, +5 bis 50, +10 bis 100; Start 0 bis 30 | bis 100, Start 0 bis 100 | bis 100, Start 0 bis 100 |
 | Regel | immer genannt | immer genannt | nur in 20 % genannt, 80 % zu entdecken |
-| Bögen | von Anfang an sichtbar | verdeckt, erscheinen mit Hilfe 2 und nach dem Lösen | verdeckt, wie Stufe 2 |
+| Bögen | auf Anfrage, gratis (bis Ticket 5 von Anfang an sichtbar) | auf Anfrage für 1 Hilfepunkt, nach dem Lösen alle | wie Stufe 2 |
 | Vorgegebene Felder | 3 (Felder 1, 2 und 5, 6 oder 8) | 3 an wechselnden Stellen | 3 oder 4 |
 | Lücken | immer 5 | immer 5 | 4 (50 %) oder 5 (50 %) |
 
@@ -172,7 +179,7 @@ Die App schaut nur auf die **letzten** Aufgaben des Verlaufs, die seit dem letzt
 | Anzahl und Ort der Lücken | 2 bis 6, Basis-Lücken ab Stufe 2 | feste 5 (Stufe 1 und 2), 4 oder 5 (Stufe 3) |
 | Schrittgrösse | nicht vorhanden | 1 bis 10 |
 | Regel sichtbar oder verdeckt | nicht vorhanden | Stufe 1 und 2 genannt, Stufe 3 meist verdeckt |
-| Hilfsmittel | Hilfe wie überall | Bögen sichtbar (Stufe 1) oder verdeckt |
+| Hilfsmittel | Hilfe wie überall, Rechnung auf Anfrage | Bögen auf Anfrage, gratis oder für 1 Hilfepunkt |
 
 Die Stufe ist heute ein **Bündel** dieser Stellschrauben. Beim Wechsel von einer Stufe zur nächsten ändern sich mehrere gleichzeitig.
 

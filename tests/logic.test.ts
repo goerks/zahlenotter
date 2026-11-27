@@ -131,19 +131,17 @@ describe("Prüfen, Fehlerarten, Sterne", () => {
 });
 
 describe("Hilfen", () => {
-  it("drei Stufen: markieren (gratis), Rechenweg (1 Punkt), aufdecken (1 weiterer Punkt)", () => {
+  it("AK-5.5 Hilfe-Knopf: 1. markieren (gratis), 2. aufdecken (1 Punkt)", () => {
     const t = ZO.makeTask("M", 2, "ABCDE");
     const h1 = ZO.applyHint(t);
     expect(t.hintsUsed).toBe(0);
+    expect(h1.text).toContain("nochmals «Hilfe»");
     const h2 = ZO.applyHint(t);
     expect(t.hintsUsed).toBe(1);
-    expect(h2.text).toMatch(/^Rechne: /);
     expect(h2.cell).toBe(h1.cell);
-    const h3 = ZO.applyHint(t);
-    expect(t.hintsUsed).toBe(2);
-    expect(t.st[h3.cell!]).toBe("ok");
-    expect(t.val[h3.cell!]).toBe(String(t.sol[h3.cell!]));
-    expect(t.revealed).toEqual([h3.cell]);
+    expect(t.st[h2.cell!]).toBe("ok");
+    expect(t.val[h2.cell!]).toBe(String(t.sol[h2.cell!]));
+    expect(t.revealed).toEqual([h2.cell]);
     expect(t.hintStage).toBe(0);
   });
 });

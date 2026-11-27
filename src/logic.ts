@@ -33,13 +33,22 @@ export interface Task {
   diffs?: number[];
   kind?: ReiheKind;
   announced?: boolean;
-  arcs?: boolean;
+  /** Reihe: Bögen auf Anfrage gratis (bis Station 2b) oder für 1 Hilfepunkt (ab 2c) */
+  arcsFree?: boolean;
+  /** Reihe: Bögen gerade eingeblendet bzw. schon bezahlt (in dieser Aufgabe nur einmal) */
+  arcsOn?: boolean;
+  arcsPaid?: boolean;
+  /** Mauer: Rechnung auf Anfrage, die gerade gezeigt wird, und die Steine, für die sie schon bezahlt ist */
+  eq?: EqHint | null;
+  eqPaid?: number[];
   text?: string;
   rule?: string;
 }
 export interface Sheet { code: string; type: TaskType; level: Level; station: string; tasks: Task[]; }
 export interface ParsedCode { type: TaskType; level: Level; station: string; seed: string; code: string; }
 export interface Hint { cell: number; eq: string | null; kind?: "add" | "sub"; }
+/** Rechnung an der Mauer: gesuchter Stein, Rechnung («21 + 20 = ?») und die zwei bekannten Steine */
+export interface EqHint { cell: number; eq: string; known: number[]; }
 export interface HintResult { cell: number | null; text: string; }
 
 // ---------- Zufall (deterministisch aus Text-Seed) ----------
@@ -107,7 +116,7 @@ export const STATIONS: Record<TaskType, StationInfo[]> = {
     ["1c", "Schritte gemischt", true],
     ["2a", "Vorwärts und rückwärts"],
     ["2b", "Mehr Schrittgrössen"],
-    ["2c", "Ohne Bögen", true],
+    ["2c", "Bögen für 1 Punkt", true],
     ["3a", "Grosse Schritte"],
     ["3b", "Regel entdecken"],
     ["3c", "Wechselnde Schritte"],
@@ -221,29 +230,29 @@ function genMauer(rng: Rng, C: MauerCfg) {
 const fmtStep = (d: number) => (d < 0 ? "−" : "+") + Math.abs(d);
 // Stellschrauben der Reihen-Stationen (nur zum Prüfen der Regel «eine Änderung je Station»;
 // die Standard-Stationen erzeugt weiter der unveränderte Generator genReiheStandard).
-export interface ReiheDims { schritte: string; richtung: "vor" | "beide"; regel: "genannt" | "entdecken"; boegen: "sichtbar" | "verdeckt"; art: "konstant" | "konstant+wechselnd" | "alle" }
+export interface ReiheDims { schritte: string; richtung: "vor" | "beide"; regel: "genannt" | "entdecken"; boegen: "gratis" | "kostet"; art: "konstant" | "konstant+wechselnd" | "alle" }
 export const REIHE_DIMS: Record<string, ReiheDims> = {
-  "1a": { schritte: "1,2", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
-  "1b": { schritte: "5,10", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
-  "1c": { schritte: "1,2,5,10", richtung: "vor", regel: "genannt", boegen: "sichtbar", art: "konstant" },
-  "2a": { schritte: "1,2,5,10", richtung: "beide", regel: "genannt", boegen: "sichtbar", art: "konstant" },
-  "2b": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "sichtbar", art: "konstant" },
-  "2c": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "verdeckt", art: "konstant" },
-  "3a": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "genannt", boegen: "verdeckt", art: "konstant" },
-  "3b": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "konstant" },
-  "3c": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "konstant+wechselnd" },
-  "3d": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "verdeckt", art: "alle" },
+  "1a": { schritte: "1,2", richtung: "vor", regel: "genannt", boegen: "gratis", art: "konstant" },
+  "1b": { schritte: "5,10", richtung: "vor", regel: "genannt", boegen: "gratis", art: "konstant" },
+  "1c": { schritte: "1,2,5,10", richtung: "vor", regel: "genannt", boegen: "gratis", art: "konstant" },
+  "2a": { schritte: "1,2,5,10", richtung: "beide", regel: "genannt", boegen: "gratis", art: "konstant" },
+  "2b": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "gratis", art: "konstant" },
+  "2c": { schritte: "2,3,4,5,10", richtung: "beide", regel: "genannt", boegen: "kostet", art: "konstant" },
+  "3a": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "genannt", boegen: "kostet", art: "konstant" },
+  "3b": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "kostet", art: "konstant" },
+  "3c": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "kostet", art: "konstant+wechselnd" },
+  "3d": { schritte: "3,4,6,7,8,9", richtung: "beide", regel: "entdecken", boegen: "kostet", art: "alle" },
 };
-interface ReiheGen { steps: number[]; back: boolean; announced: boolean; arcs: boolean; kinds: ReiheKind[]; limit: (s: number) => number; max: number; anchors: number[][] }
+interface ReiheGen { steps: number[]; back: boolean; announced: boolean; arcsFree: boolean; kinds: ReiheKind[]; limit: (s: number) => number; max: number; anchors: number[][] }
 const A1 = [[0, 1, 7], [0, 1, 4], [0, 1, 5]], A2 = [[0, 2, 5], [0, 1, 7], [1, 4, 7], [0, 3, 7]], A3 = [[0, 1, 7], [0, 2, 6], [1, 4, 7]];
 const REIHE_GEN: Record<string, ReiheGen> = {
-  "1a": { steps: [1, 2], back: false, announced: true, arcs: true, kinds: ["const"], limit: () => 20, max: 20, anchors: A1 },
-  "1b": { steps: [5, 10], back: false, announced: true, arcs: true, kinds: ["const"], limit: (s) => (s === 5 ? 50 : 100), max: 100, anchors: A1 },
-  "2a": { steps: [1, 2, 5, 10], back: true, announced: true, arcs: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
-  "2b": { steps: [2, 3, 4, 5, 10], back: true, announced: true, arcs: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
-  "3a": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: true, arcs: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
-  "3b": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcs: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
-  "3c": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcs: false, kinds: ["const", "alt"], limit: () => 100, max: 100, anchors: A3 },
+  "1a": { steps: [1, 2], back: false, announced: true, arcsFree: true, kinds: ["const"], limit: () => 20, max: 20, anchors: A1 },
+  "1b": { steps: [5, 10], back: false, announced: true, arcsFree: true, kinds: ["const"], limit: (s) => (s === 5 ? 50 : 100), max: 100, anchors: A1 },
+  "2a": { steps: [1, 2, 5, 10], back: true, announced: true, arcsFree: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
+  "2b": { steps: [2, 3, 4, 5, 10], back: true, announced: true, arcsFree: true, kinds: ["const"], limit: () => 100, max: 100, anchors: A2 },
+  "3a": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: true, arcsFree: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
+  "3b": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcsFree: false, kinds: ["const"], limit: () => 100, max: 100, anchors: A3 },
+  "3c": { steps: [3, 4, 6, 7, 8, 9], back: true, announced: false, arcsFree: false, kinds: ["const", "alt"], limit: () => 100, max: 100, anchors: A3 },
 };
 function genReiheStation(rng: Rng, station: string) {
   const C = REIHE_GEN[station];
@@ -273,7 +282,7 @@ function genReiheStation(rng: Rng, station: string) {
       ? `Zähle ${diffs[0] < 0 ? "rückwärts" : "vorwärts"} in ${s0}er-Schritten.`
       : "Finde die Regel und setze die Reihe fort.";
     const rule = diffs.slice(0, 4).map(fmtStep).join(", ") + " …";
-    return { sol, diffs, kind, announced, arcs: C.arcs, text, rule, given: sol.map((_, i) => anchors.includes(i)) };
+    return { sol, diffs, kind, announced, arcsFree: C.arcsFree, text, rule, given: sol.map((_, i) => anchors.includes(i)) };
   }
   throw new Error("Reihen-Generator: keine Aufgabe gefunden (" + station + ")");
 }
@@ -359,11 +368,11 @@ function tagsOfMauer(station: string, n: number, sol: number[], given: boolean[]
   tags.push("zahlenraum-" + MAUER_DIMS[station].raum, "hoehe-" + n);
   return tags;
 }
-function tagsOfReihe(diffs: number[], kind: ReiheKind, announced: boolean, arcs: boolean): string[] {
+function tagsOfReihe(diffs: number[], kind: ReiheKind, announced: boolean, arcsFree: boolean): string[] {
   const tags = [diffs[0] < 0 ? "rueckwaerts" : "vorwaerts", kind === "const" ? "konstant" : kind === "alt" ? "wechselnd" : "wachsend"];
   if (kind === "const") tags.push("schritt-" + Math.abs(diffs[0]));
   tags.push(announced ? "regel-genannt" : "regel-entdecken");
-  if (arcs) tags.push("bogen-sichtbar");
+  tags.push(arcsFree ? "bogen-gratis" : "bogen-kostet");
   return tags;
 }
 
@@ -375,17 +384,19 @@ export function makeTask(type: TaskType, level: Level, seed: string, station?: s
   const base: Partial<Task> & { sol: number[]; given: boolean[] } =
     type === "M" ? genMauer(rng, mauerCfg(info.id)) : info.standard ? genReiheStandard(rng, lvl) : genReiheStation(rng, info.id);
   const total = base.sol.length;
-  const arcs = base.arcs ?? lvl === 1;
+  // Bögen sind nie von Anfang an sichtbar (Ticket 5); in Klasse 1 und bis Station 2b sind sie auf Anfrage gratis.
+  const arcsFree = base.arcsFree ?? lvl === 1;
   const tags = type === "M"
     ? tagsOfMauer(info.id, base.n!, base.sol, base.given)
-    : tagsOfReihe(base.diffs!, base.kind!, base.announced!, arcs);
+    : tagsOfReihe(base.diffs!, base.kind!, base.announced!, arcsFree);
   return Object.assign(base, {
     type, level: lvl, seed, station: info.id, tags,
     val: new Array(total).fill(""),
     st: base.given.map((g) => (g ? "given" : "")),
     errors: 0, hintsUsed: 0, hintStage: 0, seen: {}, errLog: [], solved: false,
-    showSteps: type === "R" ? new Array(7).fill(arcs) : null,
+    showSteps: type === "R" ? new Array(7).fill(false) : null,
     revealed: [],
+    ...(type === "R" ? { arcsFree, arcsOn: false, arcsPaid: false } : { eq: null, eqPaid: [] }),
   }) as Task;
 }
 export const makeSheet = (code: string): Sheet | null => {
@@ -420,25 +431,31 @@ export function checkTask(t: Task): { status: "incomplete" | "wrong" | "ok"; err
     }
   }
   if (!bad) t.solved = true;
+  clearEq(t);
   return { status: bad ? "wrong" : "ok", errs };
 }
 export const starsOf = (t: Task): 1 | 2 | 3 => { const s = t.errors + t.hintsUsed; return s === 0 ? 3 : s <= 2 ? 2 : 1; };
 
 // ---------- Hilfen ----------
 const isKnown = (t: Task, i: number) => t.given[i] || t.st[i] === "ok";
+/** Rechnung für den Stein `cell`, wenn er der einzige unbekannte Stein einer Dreiergruppe ist */
+function eqFor(t: Task, cell: number): EqHint | null {
+  for (const [top, a, b] of relations(t.n!)) {
+    const grp = [top, a, b];
+    if (!grp.includes(cell) || isKnown(t, cell)) continue;
+    if (!grp.every((i) => i === cell || isKnown(t, i))) continue;
+    const eq = cell === top ? `${t.sol[a]} + ${t.sol[b]} = ?` : `${t.sol[top]} − ${t.sol[cell === a ? b : a]} = ?`;
+    return { cell, eq, known: grp.filter((i) => i !== cell) };
+  }
+  return null;
+}
 function nextHint(t: Task): Hint | null {
-  // liefert {cell, text}; text je nach Stufe wird in der Oberflaeche gewaehlt
   if (t.type === "M") {
-    const rel = relations(t.n!);
-    for (const [top, a, b] of rel) {
+    for (const [top, a, b] of relations(t.n!)) {
       const k = [top, a, b].map((i) => isKnown(t, i));
       if (k.filter(Boolean).length === 2) {
         const miss = [top, a, b][k.indexOf(false)];
-        let eq;
-        if (miss === top) eq = `${t.sol[a]} + ${t.sol[b]} = ?`;
-        else if (miss === a) eq = `${t.sol[top]} − ${t.sol[b]} = ?`;
-        else eq = `${t.sol[top]} − ${t.sol[a]} = ?`;
-        return { cell: miss, eq, kind: miss === top ? "add" : "sub" };
+        return { cell: miss, eq: eqFor(t, miss)!.eq, kind: miss === top ? "add" : "sub" };
       }
     }
     return null;
@@ -447,27 +464,64 @@ function nextHint(t: Task): Hint | null {
   if (i < 0) return null;
   return { cell: i, eq: null };
 }
+
+/** Hilfe-Knopf (Ticket 5): 1. Feld markieren (gratis), 2. Feld aufdecken (1 Hilfepunkt). Bögen und Rechnung haben eigene Knöpfe. */
 export function applyHint(t: Task): HintResult {
   const h = nextHint(t);
   if (!h) return { text: "Du bist schon fertig – drücke Prüfen.", cell: null };
-  t.hintStage = Math.min(3, t.hintStage + 1);
-  if (t.hintStage === 1)
-    return { cell: h.cell, text: t.type === "M" ? "Hier kannst du anfangen. Die orange Umrandung zeigt das Feld." : "Als Nächstes fehlt diese Zahl." };
-  if (t.hintStage === 2) {
-    t.hintsUsed += 1;
-    if (t.type === "M") return { cell: h.cell, text: "Rechne: " + h.eq };
-    let any = false;
-    for (let k = 0; k < 7; k++) if (t.level === 1 || t.announced || (isKnown(t, k) && isKnown(t, k + 1))) { t.showSteps![k] = true; any = true; }
-    return { cell: h.cell, text: any ? "Schau auf die Bögen: Sie zeigen den Schritt zwischen zwei Zahlen." : "Vergleiche die festen Zahlen: Um wie viel wird es jedes Mal mehr oder weniger?" };
+  if (t.hintStage === 0) {
+    t.hintStage = 1;
+    return { cell: h.cell, text: (t.type === "M" ? "Hier kannst du anfangen. Die orange Umrandung zeigt das Feld." : "Als Nächstes fehlt diese Zahl.") + " Drückst du nochmals «Hilfe», verrate ich die Zahl." };
   }
-  // Stufe 3: aufdecken (Stufe 1 gratis, Stufe 2 und 3 kosten je einen Hilfe-Punkt)
   t.hintsUsed += 1;
   t.val[h.cell] = String(t.sol[h.cell]);
   t.st[h.cell] = "ok";
   t.revealed.push(h.cell);
   t.hintStage = 0;
+  clearEq(t);
   return { cell: h.cell, text: "Ich habe dir ein Feld verraten. Jetzt du!" };
 }
+
+// Reihe: Bögen auf Anfrage
+/** Darf der Bogen k (zwischen Zahl k und k+1) gezeigt werden? Bei verdeckter Regel nur zwischen zwei bekannten Zahlen. */
+export const arcAllowed = (t: Task, k: number): boolean => t.level === 1 || !!t.announced || (isKnown(t, k) && isKnown(t, k + 1));
+/** Ist der Bogen k zu sehen? Nach dem Lösen alle (showSteps), sonst nur auf Anfrage. */
+export const arcVisible = (t: Task, k: number): boolean => !!t.showSteps?.[k] || (!!t.arcsOn && arcAllowed(t, k));
+/** Was kostet «Bögen zeigen» jetzt? 0 bis Station 2b oder wenn in dieser Aufgabe schon bezahlt, sonst 1 */
+export const arcsCost = (t: Task): 0 | 1 => (t.arcsFree || t.arcsPaid ? 0 : 1);
+export function toggleArcs(t: Task): { on: boolean; cost: 0 | 1; text: string } {
+  if (t.arcsOn) {
+    t.arcsOn = false;
+    return { on: false, cost: 0, text: "Die Bögen sind weg. Du kannst sie wieder zeigen, wenn du willst." };
+  }
+  const cost = arcsCost(t);
+  if (cost) { t.hintsUsed += 1; t.arcsPaid = true; }
+  t.arcsOn = true;
+  const any = Array.from({ length: t.sol.length - 1 }, (_, k) => arcAllowed(t, k)).some(Boolean);
+  return { on: true, cost, text: any ? "Die Bögen zeigen den Schritt zwischen zwei Zahlen." : "Bögen erscheinen zwischen zwei Zahlen, die du schon kennst." };
+}
+
+// Mauer: Rechnung auf Anfrage
+/** Für welchen Stein gilt die Rechnung? Der gewählte Stein, wenn er sich schon ausrechnen lässt, sonst der nächste mögliche. */
+export function eqTarget(t: Task, prefer?: number | null): EqHint | null {
+  if (t.type !== "M") return null;
+  if (prefer != null) { const e = eqFor(t, prefer); if (e) return e; }
+  const h = nextHint(t);
+  return h ? eqFor(t, h.cell) : null;
+}
+/** Was kostet «Rechnung zeigen» für diesen Stein? 1 Hilfepunkt, für einen schon bezahlten Stein 0 */
+export const eqCost = (t: Task, cell: number): 0 | 1 => (t.eqPaid?.includes(cell) ? 0 : 1);
+export function showEquation(t: Task, prefer?: number | null): { eq: EqHint | null; cost: 0 | 1; text: string } {
+  const e = eqTarget(t, prefer);
+  if (!e) return { eq: null, cost: 0, text: "Du bist schon fertig – drücke Prüfen." };
+  const cost = eqCost(t, e.cell);
+  if (cost) { t.hintsUsed += 1; t.eqPaid = [...(t.eqPaid || []), e.cell]; }
+  t.eq = e;
+  return { eq: e, cost, text: "Rechne die Rechnung über der Mauer. Die hellen Steine gehören dazu." };
+}
+export const hideEquation = (t: Task): void => { t.eq = null; };
+/** Ist der gesuchte Stein gelöst, verschwindet die Rechnung. */
+function clearEq(t: Task): void { if (t.eq && isKnown(t, t.eq.cell)) t.eq = null; }
 
 // ---------- Anpassung der Stufe ----------
 export function adapt(history: number[], level: Level): { level: Level; reset: boolean; dir: "up" | "down" | null } {

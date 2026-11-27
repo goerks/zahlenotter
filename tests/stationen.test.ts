@@ -66,7 +66,8 @@ describe("AK-2.1 Reihe: jede Station erzeugt gültige Aufgaben", () => {
         if (d.regel === "entdecken" && s.id !== "3d") expect(t.announced).toBe(false);
         if (d.art === "konstant") expect(t.kind).toBe("const");
         if (s.id === "1a") expect(t.sol[7]).toBeLessThanOrEqual(20);
-        if (!s.standard) expect(t.showSteps!.every((x) => x === (d.boegen === "sichtbar"))).toBe(true);
+        expect(t.showSteps!.every((x) => x === false)).toBe(true); // Ticket 5: nie von Anfang an
+        expect(t.arcsFree).toBe(d.boegen === "gratis");
       }
     });
   }
@@ -156,7 +157,7 @@ describe("AK-6.1 Etiketten", () => {
     expect(t.tags).toContain("konstant");
     expect(t.tags).toContain("schritt-" + Math.abs(t.diffs![0]));
     expect(t.tags).toContain("regel-genannt");
-    expect(t.tags).toContain("bogen-sichtbar");
+    expect(t.tags).toContain("bogen-gratis");
     const kinds = new Set<string>();
     for (let k = 0; k < 400; k++) ZO.makeTask("R", 3, seedOf(k), "3d").tags.forEach((x) => ["konstant", "wechselnd", "wachsend"].includes(x) && kinds.add(x));
     expect([...kinds].sort()).toEqual(["konstant", "wachsend", "wechselnd"]);

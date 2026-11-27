@@ -1,6 +1,6 @@
 # Architektur
 
-Stand: Ticket 7 (Pfad mit Stationen). Diese Datei beschreibt, was im Code steht, nicht Pläne.
+Stand: Ticket 5 (Hilfen nur auf Anfrage). Diese Datei beschreibt, was im Code steht, nicht Pläne.
 
 ## Module
 
@@ -29,7 +29,7 @@ Die Mauer-Stationen sind am Generator gemessen (lösbar und eindeutig in je 1500
 
 ## Etiketten
 
-Jede Aufgabe trägt Etiketten (`task.tags`), die aus der Aufgabe berechnet werden und nicht gespeichert sind. Mauer: `addieren`, `abziehen`, `abziehen-basis`, `zehneruebergang`, `zahlenraum-N`, `hoehe-N`. Reihe: `vorwaerts` oder `rueckwaerts`, `konstant`, `wechselnd` oder `wachsend`, `schritt-N`, `regel-genannt` oder `regel-entdecken`, `bogen-sichtbar`. Sie bereiten «Gezielt üben» vor und werden noch nicht ausgewertet.
+Jede Aufgabe trägt Etiketten (`task.tags`), die aus der Aufgabe berechnet werden und nicht gespeichert sind. Mauer: `addieren`, `abziehen`, `abziehen-basis`, `zehneruebergang`, `zahlenraum-N`, `hoehe-N`. Reihe: `vorwaerts` oder `rueckwaerts`, `konstant`, `wechselnd` oder `wachsend`, `schritt-N`, `regel-genannt` oder `regel-entdecken`, `bogen-gratis` oder `bogen-kostet`. Sie bereiten «Gezielt üben» vor und werden noch nicht ausgewertet.
 
 ## Speicher (Version 2)
 
@@ -49,6 +49,13 @@ Aufstieg: mindestens 5 Aufgaben der Station gelöst und von den letzten 5 mindes
 - **Touchziele:** Knöpfe, Auswahlfelder und die bedienbaren Felder sind mindestens 48 px hoch; der Schalter «Automatisch weiterkommen» hat eine grössere Tippfläche über `::before`. Die gedruckten Felder des Blatts bleiben unverändert (`button.cell`, nicht `.cell`).
 - **Natel:** Eigene Regeln stehen in einem einzigen Block `@media (max-width:600px)` am Ende von `style.css`. Prioritäten bei Design-Entscheiden (Vorgabe von Michael): 1. Tablet, 2. Desktop, 3. Natel. Deshalb ändert der Block nur schmale Bildschirme; ein Bildvergleich zeigt Tablet (768, 820, 1180 px) und Desktop (1280 px) pixelgleich zum Stand davor. Auf dem Natel bleibt die Zahlenreihe einzeilig mit weniger Abstand (Felder 38 bis 41 px breit, 48 px hoch), der Titel kann umbrechen, die Pfad-Stationen sind 52 px.
 - **Kontrast:** Weisse Schrift auf Petrol, graue Zusatzschrift und dunkle Schrift auf Orange kommen auf mindestens 4,5 zu 1. `tests/design.test.ts` prüft die Stilregeln und die Farben.
+
+## Hilfen auf Anfrage (Ticket 5)
+
+- Alles steht in `src/logic.ts` und ist ohne Browser getestet (`tests/hilfen.test.ts`). Die Aufgabe trägt den Zustand: Reihe `arcsFree`, `arcsOn`, `arcsPaid`; Mauer `eq` (gezeigte Rechnung: Stein, Text, die zwei bekannten Steine) und `eqPaid` (Steine, für die schon bezahlt ist). Nichts davon wird gespeichert, das Speicherformat bleibt Version 2.
+- `REIHE_DIMS.boegen` ist `gratis` (1a bis 2b) oder `kostet` (ab 2c); die Regel «eine Stellschraube je Station» gilt weiter. `showSteps` ist am Anfang immer leer und wird nach dem Lösen gefüllt; `arcVisible` entscheidet, welcher Bogen zu sehen ist (bei verdeckter Regel nur zwischen bekannten Zahlen).
+- `applyHint` hat zwei Stufen (markieren gratis, aufdecken 1 Punkt). `toggleArcs`, `showEquation`, `hideEquation`, `eqTarget`, `arcsCost` und `eqCost` bedienen die zwei neuen Knöpfe; die Oberfläche zeigt die Kosten vorher als Schild. Die Rechnung verschwindet, sobald ihr Stein richtig ist (`checkTask`, Aufdecken).
+- Die Oberfläche reserviert über der Mauer einen festen Platz (`.rechnung-platz`, 60 px, Natel 48 px), damit die Mauer beim Ein- und Ausblenden nicht springt.
 
 ## Datenschutz
 

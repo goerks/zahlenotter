@@ -79,9 +79,14 @@ import "./style.css";
   const backIcon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
   const bulb = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.7.6 1 1.2 1 2.1h5c0-.9.3-1.5 1-2.1A6 6 0 0 0 12 3z"/></svg>';
 
+  const arcIcon = '<svg viewBox="0 0 32 20" width="28" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M3 18 Q9 2 16 18"/><path d="M16 18 Q23 2 29 18"/></svg>';
+  const eqIcon = '<svg viewBox="0 0 28 22" width="26" height="20" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="8" y="2" width="12" height="8" rx="2"/><rect x="2" y="12" width="12" height="8" rx="2"/><rect x="14" y="12" width="12" height="8" rx="2"/></svg>';
+  const costBadge = (cost) => `<span class="badge${cost ? " cost" : ""}">${cost ? "1 Hilfepunkt" : "gratis"}</span>`;
+
   // ---------- Bretter ----------
   function cellHtml(t, ti, i, o) {
     let cls = "cell", txt = "", interactive = false;
+    if (!o.static && t.eq) { if (t.eq.known.includes(i)) cls += " eqk"; if (t.eq.cell === i) cls += " eqt"; }
     if (t.given[i]) { cls += " given"; txt = t.sol[i]; }
     else if (o.static) { cls += " blank"; if (o.sol) { cls += " sol"; txt = t.sol[i]; } }
     else {
@@ -110,12 +115,32 @@ import "./style.css";
     for (let i = 0; i < 8; i++) {
       let arc = "";
       if (i < 7 && !o.static) {
-        const on = t.showSteps[i];
+        const on = ZO.arcVisible(t, i);
         arc = `<span class="arc${on ? " on" : ""}"><b>${on ? fmt(t.diffs[i]) : ""}</b><svg viewBox="0 0 100 26" preserveAspectRatio="none"><path d="M4 26 Q50 -10 96 26" vector-effect="non-scaling-stroke"/></svg></span>`;
       }
       h += `<div class="rc">${cellHtml(t, ti, i, o)}${arc}</div>`;
     }
     return h + "</div>";
+  }
+  // Rechnung über der Mauer (Ticket 5, Variante B1): der Platz bleibt frei, damit die Mauer nicht springt.
+  function rechnungHtml(t) {
+    if (t.type !== "M") return "";
+    let inner = "";
+    if (t.eq) {
+      const [a, op, b] = t.eq.eq.split(" ");
+      inner = `<div class="rechnung" role="status" aria-label="Rechnung ${esc(t.eq.eq)}"><span class="k">${esc(a)}</span><span>${esc(op)}</span><span class="k">${esc(b)}</span><span>=</span><span class="q">?</span></div>`;
+    }
+    return `<div class="rechnung-platz">${inner}</div>`;
+  }
+  function helpBtnHtml(t) {
+    if (t.type === "R") {
+      return t.arcsOn
+        ? `<button class="btn alt on" data-act="arcs" aria-pressed="true">${arcIcon}<span>Bögen ausblenden</span></button>`
+        : `<button class="btn alt" data-act="arcs" aria-pressed="false">${arcIcon}<span>Bögen zeigen</span>${costBadge(ZO.arcsCost(t))}</button>`;
+    }
+    if (t.eq) return `<button class="btn alt on" data-act="eq" aria-pressed="true">${eqIcon}<span>Rechnung ausblenden</span></button>`;
+    const target = ZO.eqTarget(t, S.active ? S.active.i : null);
+    return `<button class="btn alt" data-act="eq" aria-pressed="false">${eqIcon}<span>Rechnung zeigen</span>${target ? costBadge(ZO.eqCost(t, target.cell)) : ""}</button>`;
   }
   const boardHtml = (t, ti, o) => (t.type === "M" ? mauerHtml(t, ti, o || {}) : reiheHtml(t, ti, o || {}));
   const instruction = (t) =>
@@ -175,9 +200,9 @@ import "./style.css";
     return `<div class="noprint">
       <div class="topbar"><button class="btn alt small" data-act="go" data-to="home">${backIcon} Zurück</button><div class="dots" aria-label="Fortschritt">${dots}</div><span class="chip">${fishIcon()} ${S.fish}</span></div>
       <div class="banner">${esc(instruction(t))}</div>
-      <div class="stage">${boardHtml(t, 0)}</div>
+      <div class="stage">${rechnungHtml(t)}${boardHtml(t, 0)}</div>
       <div class="coach">${otter(S.mood, stageOf(S.fish), 84)}<div class="bubble msg">${esc(S.msg)}</div></div>
-      <div class="tools"><button class="btn alt" data-act="hint">${bulb} Hilfe</button><button class="btn orange" data-act="check">Prüfen</button></div>
+      <div class="tools">${helpBtnHtml(t)}<button class="btn alt" data-act="hint">${bulb} Hilfe</button><button class="btn orange" data-act="check">Prüfen</button></div>
       ${padHtml()}<div class="code-tag"><span>Aufgabe ${t.code} · ${esc(ZO.stationInfo(t.type, t.station).name)}</span>${copyBtn("task", t.code, "Code kopieren")}</div>${ov}</div>`;
   }
 
@@ -433,6 +458,22 @@ import "./style.css";
     } else if (r.cell != null) S.active = { t: 0, i: r.cell };
     save();
   }
+  // Bögen (Reihe) bzw. Rechnung (Mauer) auf Anfrage (Ticket 5)
+  function doArcs() {
+    const t = S.tasks[0];
+    const r = ZO.toggleArcs(t);
+    if (r.on) S.stats.hints++;
+    S.msg = r.text; S.mood = "think";
+    save();
+  }
+  function doEq() {
+    const t = S.tasks[0];
+    if (t.eq) { ZO.hideEquation(t); S.msg = "Die Rechnung ist weg. Du kannst sie wieder zeigen, wenn du willst."; S.mood = "happy"; return; }
+    const r = ZO.showEquation(t, S.active ? S.active.i : null);
+    S.msg = r.text; S.mood = "think";
+    if (r.eq) { S.stats.hints++; S.active = { t: 0, i: r.eq.cell }; S.hintCell = null; }
+    save();
+  }
   function checkAll() {
     const sh = S.sheet, res = [];
     let allErrs = [], solvedAll = true;
@@ -499,6 +540,8 @@ import "./style.css";
       case "next": step(1); break;
       case "prev": step(-1); break;
       case "hint": doHint(); break;
+      case "arcs": doArcs(); break;
+      case "eq": doEq(); break;
       case "check": doCheck(); break;
       case "continue":
         S.overlay = null;

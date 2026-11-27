@@ -45,12 +45,12 @@ Die drei Stufen (Klasse 1 bis 3) bleiben als **Welten**. Innerhalb jeder Stufe g
 
 | Feinstufe | Was ist neu gegenüber der vorigen | Entspricht heute |
 |---|---|---|
-| 1a | +1 und +2 bis 20, Regel genannt, Bögen sichtbar | Teil der heutigen Stufe 1 |
+| 1a | +1 und +2 bis 20, Regel genannt, Bögen gratis auf Anfrage (bis Ticket 5: sichtbar) | Teil der heutigen Stufe 1 |
 | 1b | +5 und +10 bis 100 | Teil der heutigen Stufe 1 |
 | 1c | alle vier Schritte gemischt | heutige Stufe 1 |
 | 2a | rückwärts mit ±2, ±5, ±10 | Teil der heutigen Stufe 2 |
 | 2b | ±3 und ±4 | Teil der heutigen Stufe 2 |
-| 2c | Bögen verdeckt, alle Schritte vor- und rückwärts | heutige Stufe 2 |
+| 2c | Bögen kosten 1 Hilfepunkt (bis Ticket 5: verdeckt), alle Schritte vor- und rückwärts | heutige Stufe 2 |
 | 3a | Regel genannt, grosse Schritte (6 bis 9) | Teil der heutigen Stufe 3 |
 | 3b | Regel entdecken: gleichbleibend | Teil der heutigen Stufe 3 |
 | 3c | Regel entdecken: wechselnd | Teil der heutigen Stufe 3 |
