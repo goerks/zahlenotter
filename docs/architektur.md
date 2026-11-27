@@ -41,6 +41,15 @@ Schlüssel `zahlenotter.v2`, Feld `version: 2`. Pro Spiel: aktuelle `station`, `
 
 Aufstieg: mindestens 5 Aufgaben der Station gelöst und von den letzten 5 mindestens 4 sicher. Sicher heisst 2 oder 3 Sterne und kein Feld aufgedeckt. Es gibt keinen automatischen Abstieg. Nach zwei Aufgaben mit 1 Stern in Folge erscheint einmal je Einheit ein Angebot (leichtere Aufgabe, Pause, weiter). Papierblätter zählen nicht für den Aufstieg, nur für die Fische. Beim Wiederholen einer früheren Station gibt es Fische, der Pfad bleibt unberührt. Auf der Elternseite lässt sich die Station festlegen; der Knopf muss 2 Sekunden gehalten werden.
 
+## Bedienung: Markieren, Kopieren, Maus und Tastatur (Ticket 8)
+
+- **Nicht markierbar:** In `style.css` gilt `user-select: none` und `-webkit-touch-callout: none` für die ganze App. Ausnahme sind Eingabefelder (`input`, `textarea`, `select`); die Ausnahme steht spezifischer und nach der allgemeinen Regel, sonst würde sie überstimmt. `touch-action: manipulation` verhindert Zoomen durch Doppeltippen.
+- **Kopieren:** `src/copy.ts` (`copyText`) probiert die Zwischenablage (`navigator.clipboard`, braucht https), dann den Notbehelf `document.execCommand("copy")`, sonst meldet es «fehler». Die Oberfläche zeigt dann ein Fenster mit dem Text markiert in einem Feld. Auf dem Papierblatt steht über dem Blatt eine Code-Karte mit «Code kopieren» und «Adresse kopieren» (die Adresse der App, wie im Feld eingestellt); in der Aufgabenansicht gibt es einen kleinen Knopf neben dem Code. Karte und Hinweis sind `noprint`.
+- **Maus und Tastatur:** Hover-Regeln stehen nur in `@media (hover:hover)`, damit auf dem Tablet nichts «klebt». Gedrückt gewinnt über Darüber (`.btn:hover:active`). Der Fokusring (4 px, Petrol) gilt für `:focus-visible`.
+- **Touchziele:** Knöpfe, Auswahlfelder und die bedienbaren Felder sind mindestens 48 px hoch; der Schalter «Automatisch weiterkommen» hat eine grössere Tippfläche über `::before`. Die gedruckten Felder des Blatts bleiben unverändert (`button.cell`, nicht `.cell`).
+- **Natel:** Eigene Regeln stehen in einem einzigen Block `@media (max-width:600px)` am Ende von `style.css`. Prioritäten bei Design-Entscheiden (Vorgabe von Michael): 1. Tablet, 2. Desktop, 3. Natel. Deshalb ändert der Block nur schmale Bildschirme; ein Bildvergleich zeigt Tablet (768, 820, 1180 px) und Desktop (1280 px) pixelgleich zum Stand davor. Auf dem Natel bleibt die Zahlenreihe einzeilig mit weniger Abstand (Felder 38 bis 41 px breit, 48 px hoch), der Titel kann umbrechen, die Pfad-Stationen sind 52 px.
+- **Kontrast:** Weisse Schrift auf Petrol, graue Zusatzschrift und dunkle Schrift auf Orange kommen auf mindestens 4,5 zu 1. `tests/design.test.ts` prüft die Stilregeln und die Farben.
+
 ## Datenschutz
 
 Nichts wird übertragen, es gibt keine Drittanbieter und kein Konto. Das Datum je Aufgabe ist ein Tag ohne Uhrzeit.

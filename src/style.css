@@ -1,6 +1,6 @@
 :root{
-  --bg:#FFF7E8; --card:#FFFFFF; --ink:#23355B; --muted:#6B7A99;
-  --teal:#1F8A8A; --teal-d:#166B6B; --teal-l:#DDF1F0;
+  --bg:#FFF7E8; --card:#FFFFFF; --ink:#23355B; --muted:#62708D;
+  --teal:#1D8282; --teal-d:#166B6B; --teal-l:#DDF1F0;
   --orange:#F39C4A; --orange-l:#FFE6C7; --green:#4CAF7A; --green-l:#D9F2E3;
   --gold:#F4B942; --line:#D9DEE8; --given:#E6EEF9; --river:#CDEAEA;
   --cw:clamp(52px,11vw,104px);
@@ -22,8 +22,8 @@ h1,h2,h3{margin:0;line-height:1.15}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 20px;border-radius:16px;background:var(--teal);color:#fff;font-weight:700;box-shadow:0 3px 0 var(--teal-d)}
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--teal-d)}
 .btn.alt{background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--line);border:2px solid var(--line)}
-.btn.orange{background:var(--orange);box-shadow:0 3px 0 #C9772B}
-.btn.small{min-height:40px;padding:6px 14px;font-size:16px;border-radius:12px}
+.btn.orange{background:var(--orange);color:var(--ink);box-shadow:0 3px 0 #C9772B}
+.btn.small{min-height:48px;padding:6px 14px;font-size:16px;border-radius:12px}
 .btn[disabled]{opacity:.5}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:#fff;border:2px solid var(--line);font-weight:700}
 .dots{display:flex;gap:8px}
@@ -43,8 +43,8 @@ h1,h2,h3{margin:0;line-height:1.15}
 .world h2{font-size:26px}
 .world .ico{height:84px;display:flex;align-items:center;justify-content:center;background:var(--teal-l);border-radius:16px}
 .pills{display:flex;gap:8px}
-.pill{flex:1;min-height:46px;border-radius:14px;border:2px solid var(--line);background:#fff;font-weight:700}
-.pill.on{background:var(--orange);border-color:var(--orange);color:#fff}
+.pill{flex:1;min-height:48px;border-radius:14px;border:2px solid var(--line);background:#fff;font-weight:700}
+.pill.on{background:var(--orange);border-color:var(--orange);color:var(--ink)}
 .small{font-size:15px}
 .footer-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .switch{display:flex;align-items:center;gap:10px;margin-top:14px}
@@ -83,7 +83,7 @@ h1,h2,h3{margin:0;line-height:1.15}
 .pad .wide{background:var(--teal-l);border-color:#B7DEDC}
 .coach{display:flex;gap:12px;align-items:center;margin-top:12px}
 .msg{min-height:46px}
-.code-tag{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+.code-tag{font-size:13px;color:var(--muted);text-align:center;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
 
 /* Overlay */
 .overlay{position:fixed;inset:0;background:rgba(35,53,91,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
@@ -107,6 +107,38 @@ input.txt{font:inherit;min-height:48px;border-radius:12px;border:2px solid var(-
 .resultchips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .rchip{padding:4px 12px;border-radius:99px;font-weight:700;font-size:15px}
 .rchip.ok{background:var(--green-l);color:#237a4a}.rchip.bad{background:var(--orange-l);color:#a55a12}.rchip.open{background:var(--line)}
+
+/* Bedienung mit Finger, Maus und Tastatur (Ticket 8) */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+html,body,#app,#app *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,#app input,#app textarea,#app select{-webkit-user-select:text;user-select:text}
+img,svg{-webkit-user-drag:none}
+:focus-visible{outline:4px solid var(--teal);outline-offset:3px}
+button.cell{min-height:48px}
+.switch button:before{content:"";position:absolute;inset:-9px -6px}
+.pill:active{transform:translateY(2px)}
+button.cell.blank:active{background:var(--orange-l)}
+@media (hover:hover){
+  .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn.alt:hover,.copybtn:hover{background:var(--teal-l);border-color:#B7DEDC;filter:none}
+  .btn:hover:active{transform:translateY(2px);filter:none}
+  .pad button:hover{background:var(--teal-l)}
+  button.cell.blank:not(.ok):not(.bad):hover{border-color:var(--teal-d);background:var(--teal-l)}
+  .pill:not(.on):hover{background:var(--teal-l);border-color:#B7DEDC}
+  .tdot:hover{transform:translate(-50%,-50%) scale(1.06)}
+}
+
+/* Kopieren: Code-Karte, Knöpfe, Hinweis */
+.copybtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:6px 16px;border-radius:14px;border:2px solid var(--line);background:#fff;font-weight:700;color:var(--ink);box-shadow:0 3px 0 var(--line);font-size:16px}
+.copybtn:active{transform:translateY(2px);box-shadow:none}
+.copybtn.ok{background:var(--green-l);border-color:var(--green);color:#1d6b43}
+.codecard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff;border-radius:22px;padding:16px 18px;margin-bottom:14px;box-shadow:0 3px 0 var(--line)}
+.codecard .codeinfo{flex:1;min-width:200px;display:flex;flex-direction:column}
+.codecard .lbl{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.codecard .big{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:34px;font-weight:800;letter-spacing:.06em}
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;font-weight:700;display:flex;gap:8px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:20}
+.copyfield{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:26px;font-weight:800;letter-spacing:.06em;text-align:center}
+.copyhelper{position:fixed;left:-9999px;top:0;opacity:0}
 
 /* Pfad (Spielbrett mit Fluss und Stationen) */
 .world-btns,.stack{display:flex;flex-direction:column;gap:10px}
@@ -141,11 +173,35 @@ select.txt{font:inherit;min-height:48px;border-radius:12px;border:2px solid var(
 table.fe{width:100%;border-collapse:collapse;font-size:15px;min-width:420px}
 table.fe th,table.fe td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
 
+/* Natel (schmaler als 600 px). Reihenfolge der Prioritäten: Tablet, Desktop, Natel.
+   Alles hier gilt nur für schmale Bildschirme, Tablet und Desktop bleiben unverändert. */
+@media (max-width:600px){
+  :root{--cw:clamp(48px,14vw,104px)}
+  #app{padding:10px 12px 32px}
+  .topbar h2{flex:1;min-width:0;text-align:center;font-size:18px;line-height:1.2}
+  .banner{font-size:17px;padding:8px 12px}
+  .bubble{font-size:16px}
+  .stage{padding:14px 4px}
+  .rrow{--g:3px;padding-top:40px}
+  .rc .cell{font-size:clamp(15px,4.6vw,22px);border-width:2px;border-radius:9px}
+  .arc b{font-size:12px;padding:0 2px}
+  .pad{gap:6px}
+  .pad button{min-height:52px;font-size:22px}
+  .tdot{width:52px;height:52px;font-size:19px}
+  .tdot.now{width:62px;height:62px}
+  .tdot.now svg{width:46px;height:46px}
+  .klass{font-size:13px;padding:3px 10px}
+  .legend{gap:6px 12px;font-size:13px}
+  .codecard .big{font-size:28px}
+  .codecard .copybtn{flex:1 1 auto}
+  .sheet{padding:14px 12px}
+}
+
 /* Druckblatt */
 .sheet{background:#fff;color:#000;border:2px solid #222;border-radius:14px;padding:18px 20px;margin:12px auto;max-width:760px}
 .sheet header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:12px}
 .sheet h2{font-size:24px}
-.sheet .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:18px}
+.sheet .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:18px;white-space:nowrap}
 .sheet .tasks.m{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px}
 .sheet .tasks.r{display:flex;flex-direction:column;gap:12px}
 .sheet .tasks.m .stage,.sheet .tasks.r .stage{background:none;box-shadow:none;padding:0}
